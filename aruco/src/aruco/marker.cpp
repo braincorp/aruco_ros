@@ -336,4 +336,9 @@ namespace aruco {
     return sum;
   }
 
+  float Marker::getDistanceFromCamera()
+  {
+     return Tvec.at<float>(2,0);
+  }
+
 }

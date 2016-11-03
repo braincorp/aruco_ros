@@ -77,8 +77,8 @@ private:
   double yaw_tolerance;
   double roll_tolerance;
   double pitch_tolerance;
-  double max_perimeter;
-  double min_perimeter;
+  double max_distance;
+  double min_distance;
 
   bool overlay_error_message;
 
@@ -108,8 +108,8 @@ public:
     image_pub = it.advertise("result", 1);
     debug_pub = it.advertise("debug", 1);
 
-
-    nh.param<double>("marker_size", marker_size, 0.05);
+    // ROS Param from node. Set default of 10 compatibles Aruco codes
+    nh.param<double>("marker_size", marker_size, 0.10);
     nh.param<int>("num_markers", num_markers_in_list, 11);
     nh.param<int>("marker_id_0", marker_id[0], 500);
     nh.param<int>("marker_id_1", marker_id[1], 582);
@@ -122,12 +122,15 @@ public:
     nh.param<int>("marker_id_8", marker_id[8], 825);
     nh.param<int>("marker_id_9", marker_id[9], 921);
     nh.param<int>("marker_id_10", marker_id[10], 945);
+
     nh.param<std::string>("reference_frame", reference_frame, "");
     nh.param<std::string>("camera_frame", camera_frame, "");
     nh.param<std::string>("marker_frame", marker_frame, "");
     nh.param<bool>("image_is_rectified", useRectifiedImages, true);
-    nh.param<double>("min_perimeter", min_perimeter, 130.);
-    nh.param<double>("max_perimeter", max_perimeter, 375.);
+
+    //Parameters for detecting erroneous conditions
+    nh.param<double>("min_distance", min_distance, 0.5);
+    nh.param<double>("max_distance", max_distance, 2.);
     nh.param<double>("yaw_tolerance", yaw_tolerance, M_PI/12.);
     nh.param<double>("roll_tolerance", roll_tolerance, M_PI/8.);
     nh.param<double>("pitch_tolerance", pitch_tolerance, M_PI/8.);
@@ -212,6 +215,8 @@ public:
     {
       ros::Time curr_stamp(ros::Time::now());
       cv_bridge::CvImagePtr cv_ptr;
+      aruco_msgs::Marker arucoMsg;
+
       try
       {
         cv::Point position(0,30);
@@ -225,7 +230,7 @@ public:
         //for each marker, draw info and its boundaries in the image
 
         bool multiple_markers_detected = markers.size() > 1;
-        bool error_condition = false;
+        unsigned int error_condition = 0;
         std::string error_message = "";
 
         for(size_t i=0; i<markers.size(); ++i)
@@ -242,34 +247,46 @@ public:
 
               tf::Matrix3x3(transform.getRotation()).getRPY(roll, pitch, yaw);
 
+              // Test for erroneous conditions
+              // Note that order is important for error message
+              // All error codes will be forwarded
+              if (abs(yaw - expected_yaw) > yaw_tolerance){
+                error_message = arucoMsg.CODE_TWISTED_MESSAGE;
+                error_condition |= arucoMsg.CODE_TWISTED;
+              }
               if (abs(yaw - expected_yaw) > M_PI/2.){
-                error_message = "Code is mounted upside down";
+                error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
+                error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
               }
-              else if (abs(yaw - expected_yaw) > yaw_tolerance){
-                error_message = "Code is twisted";
+              if (abs(roll - expected_roll) > roll_tolerance){
+                error_message = arucoMsg.ANGLE_TOO_STEEP_MESSAGE;
+                error_condition |= arucoMsg.ANGLE_TOO_STEEP;
               }
-              else if (abs(roll - expected_roll) > roll_tolerance){
-                error_message = "Park parallel to the code";
+              if (abs(pitch - expected_pitch) > pitch_tolerance){
+                error_message = arucoMsg.CODE_NOT_FLAT_MESSAGE;
+                error_condition |= arucoMsg.CODE_NOT_FLAT;
               }
-              else if (abs(pitch - expected_pitch) > pitch_tolerance){
-                error_message = "Code must be mounted flat";
+              if (markers[i].getDistanceFromCamera() < min_distance){
+                error_message = arucoMsg.TOO_CLOSE_MESSAGE;
+                error_condition |= arucoMsg.TOO_CLOSE;
               }
-              else if (markers[i].getPerimeter() > max_perimeter){
-                error_message = "Emma is too close to code";
+              if (markers[i].getDistanceFromCamera() > max_distance){
+                error_message = arucoMsg.TOO_FAR_MESSAGE;
+                error_condition |= arucoMsg.TOO_FAR;
               }
-              else if (markers[i].getPerimeter() < min_perimeter){
-                error_message = "Emma is too far from code";
-              }
-
-              if (error_condition){
+              // Only overlay error message on the image when at least one error condition has been met
+              // In this condition, also draw a red rectangle around the code
+              if (error_condition > 0){
                 markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
                 if (overlay_error_message){
                   cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
                 }
               }else{
+                // Otherwise, draw a green rectangle around the detected code (Green = success)
                 markers[i].draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(markers[i].id));
               }
 
+              // Get TF and broadcast it
               tf::StampedTransform cameraToReference;
               cameraToReference.setIdentity();
 
@@ -288,37 +305,44 @@ public:
               tf::StampedTransform stampedTransform(transform, curr_stamp,
                                                     reference_frame, marker_frame);
               br.sendTransform(stampedTransform);
-
-              aruco_msgs::Marker arucoMsg;
-              arucoMsg.header.frame_id = reference_frame;
-              arucoMsg.header.stamp = curr_stamp;
-              arucoMsg.id = markers[i].id;
-              arucoMsg.confidence = 1.0;
-
-              geometry_msgs::PoseWithCovariance poseMsg;
-              tf::poseTFToMsg(transform, poseMsg.pose);
-
-              arucoMsg.pose = poseMsg;
-              pose_pub.publish(arucoMsg);
-
               geometry_msgs::TransformStamped transformMsg;
               tf::transformStampedTFToMsg(stampedTransform, transformMsg);
               transform_pub.publish(transformMsg);
-            }
-          }else{
 
-            if(is_marker_id_in_list(markers[i].id))
-            {
-              // but drawing all the detected markers
-              cv::putText(inImage,"Emma detects multiple codes",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255),2);
+              // Populate and publish Aruco Marker msg
+              // We publish the home id, home code, all error codes (binary mask) and the main error message
+              // We also publish the pose of the aruco code
+              geometry_msgs::PoseWithCovariance poseMsg;
+              tf::poseTFToMsg(transform, poseMsg.pose);
+
+              arucoMsg.header.frame_id = reference_frame;
+              arucoMsg.header.stamp = curr_stamp;
+              arucoMsg.id = markers[i].id;
+              arucoMsg.home_id = i;
+              arucoMsg.error_code = error_condition;
+              arucoMsg.error_message = error_message;
+              arucoMsg.pose = poseMsg;
+              pose_pub.publish(arucoMsg);
+            }
+          }else if(is_marker_id_in_list(markers[i].id))
+          {
+              error_message = arucoMsg.MORE_THAN_ONE_CODE_MESSAGE;
+              error_condition |= arucoMsg.MORE_THAN_ONE_CODE;
+              // We still draw all markers if they are more than one
               markers[i].draw(inImage,cv::Scalar(255,0,0), 2, false);
-            }
           }
-
         }
-        if (multiple_markers_detected){
-        }
+        // If multiple aruco code have been detected, return
+        if ((error_condition & arucoMsg.MORE_THAN_ONE_CODE) > 0){
+          arucoMsg.header.frame_id = reference_frame;
+          arucoMsg.error_code = error_condition;
+          arucoMsg.error_message = error_message;
 
+          pose_pub.publish(arucoMsg);
+          if (overlay_error_message){
+            cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+          }
+        }
 
         if(image_pub.getNumSubscribers() > 0)
         {

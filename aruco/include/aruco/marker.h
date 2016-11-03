@@ -108,6 +108,8 @@ public:
     /**Returns the area
      */
     float getArea()const;
+
+    float getDistanceFromCamera();
     /**
      */
     /**
