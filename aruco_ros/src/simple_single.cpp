@@ -38,6 +38,8 @@ or implied, of Rafael Muñoz Salinas.
 #include <aruco_msgs/Marker.h>
 #include <aruco/cvdrawingutils.h>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <opencv2/core/core.hpp>
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
@@ -171,6 +173,18 @@ public:
     return false;
   }
 
+  std::string get_name_from_id(int id){
+    char str[100];
+
+    for (unsigned i = 0; i < num_markers_in_list; ++i){
+      if (marker_id[i] == id){
+        sprintf(str, "Home location %d", i);
+        return std::string(str);
+      }
+    }
+    return "Unknown code";
+  }
+
 
   void image_callback(const sensor_msgs::ImageConstPtr& msg)
   {
@@ -181,6 +195,7 @@ public:
       cv_bridge::CvImagePtr cv_ptr;
       try
       {
+        cv::Point position(0,30);
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
         inImage = cv_ptr->image;
 
@@ -196,58 +211,95 @@ public:
             // only publishing the selected markers
             if(is_marker_id_in_list(markers[i].id))
             {
+
               tf::Transform transform = aruco_ros::arucoMarker2Tf(markers[i]);
-              tf::StampedTransform cameraToReference;
-              cameraToReference.setIdentity();
 
-              if ( reference_frame != camera_frame )
-              {
-                getTransform(reference_frame,
-                             camera_frame,
-                             cameraToReference);
+              double roll, pitch, yaw;
+              tf::Matrix3x3(transform.getRotation()).getRPY(roll, pitch, yaw);
+
+              double expected_yaw = -M_PI / 2.;  // Use to detect code mounted upside down or twisted
+              double expected_roll = -M_PI / 2.;  // Use to detect steep angle of approach
+              double expected_pitch = 0.;  // Use to detect steep angle of approach
+              double max_perimeter = 600.;
+              double min_perimeter = 200.;
+
+              if (abs(yaw - expected_yaw) > M_PI/2.){
+                cv::putText(inImage,"Home code is mounted upside down",position, cv::FONT_HERSHEY_SIMPLEX, 1., cv::Scalar(255,0,0,255), 2);
+                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
               }
+              else if (abs(yaw - expected_yaw) > M_PI/12.){
+                cv::putText(inImage,"Home code is twisted",position, cv::FONT_HERSHEY_SIMPLEX, 1., cv::Scalar(255,0,0,255), 2);
+                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+              }
+              else if (abs(roll - expected_roll) > M_PI/6.){
+                cv::putText(inImage,"Park parallel to the code",position, cv::FONT_HERSHEY_SIMPLEX, 1., cv::Scalar(255,0,0,255), 2);
+                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+              }
+              else if (abs(pitch - expected_pitch) > M_PI/6.){
+                cv::putText(inImage,"Code should be mounted flat",position, cv::FONT_HERSHEY_SIMPLEX, 1., cv::Scalar(255,0,0,255), 2);
+                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+              }
+              else if (markers[i].getPerimeter() > max_perimeter){
+                cv::putText(inImage,"Too close to home location",position, cv::FONT_HERSHEY_SIMPLEX, 1., cv::Scalar(255,0,0,255), 2);
+                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 5, false);
+              }
+              else if (markers[i].getPerimeter() < min_perimeter){
+                cv::putText(inImage,"Too far from home location",position, cv::FONT_HERSHEY_SIMPLEX, 1., cv::Scalar(255,0,0,255), 2);
+                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 1, false);
+              }
+              else{
+                  // Everything is good
+                  tf::StampedTransform cameraToReference;
+                  cameraToReference.setIdentity();
 
-              transform =
-                static_cast<tf::Transform>(cameraToReference)
-                * static_cast<tf::Transform>(rightToLeft)
-                * transform;
+                  if ( reference_frame != camera_frame )
+                  {
+                    getTransform(reference_frame,
+                                 camera_frame,
+                                 cameraToReference);
+                  }
 
-              tf::StampedTransform stampedTransform(transform, curr_stamp,
-                                                    reference_frame, marker_frame);
-              br.sendTransform(stampedTransform);
+                  transform =
+                    static_cast<tf::Transform>(cameraToReference)
+                    * static_cast<tf::Transform>(rightToLeft)
+                    * transform;
 
-              aruco_msgs::Marker arucoMsg;
-              arucoMsg.header.frame_id = reference_frame;
-              arucoMsg.header.stamp = curr_stamp;
-              arucoMsg.id = markers[i].id;
-              arucoMsg.confidence = 1.0;
+                  tf::StampedTransform stampedTransform(transform, curr_stamp,
+                                                        reference_frame, marker_frame);
+                  br.sendTransform(stampedTransform);
 
-              geometry_msgs::PoseWithCovariance poseMsg;
-              tf::poseTFToMsg(transform, poseMsg.pose);
+                  aruco_msgs::Marker arucoMsg;
+                  arucoMsg.header.frame_id = reference_frame;
+                  arucoMsg.header.stamp = curr_stamp;
+                  arucoMsg.id = markers[i].id;
+                  arucoMsg.confidence = 1.0;
 
-              arucoMsg.pose = poseMsg;
-              pose_pub.publish(arucoMsg);
+                  geometry_msgs::PoseWithCovariance poseMsg;
+                  tf::poseTFToMsg(transform, poseMsg.pose);
 
-              geometry_msgs::TransformStamped transformMsg;
-              tf::transformStampedTFToMsg(stampedTransform, transformMsg);
-              transform_pub.publish(transformMsg);
+                  arucoMsg.pose = poseMsg;
+                  pose_pub.publish(arucoMsg);
 
-              geometry_msgs::Vector3Stamped positionMsg;
-              positionMsg.header = transformMsg.header;
-              positionMsg.vector = transformMsg.transform.translation;
-              position_pub.publish(positionMsg);
+                  geometry_msgs::TransformStamped transformMsg;
+                  tf::transformStampedTFToMsg(stampedTransform, transformMsg);
+                  transform_pub.publish(transformMsg);
+
+                  geometry_msgs::Vector3Stamped positionMsg;
+                  positionMsg.header = transformMsg.header;
+                  positionMsg.vector = transformMsg.transform.translation;
+                  position_pub.publish(positionMsg);
+                  markers[i].draw(inImage,cv::Scalar(0, 255, 0), 3, false, get_name_from_id(markers[i].id));
+              }
             }
-          }
-          // but drawing all the detected markers
-          markers[i].draw(inImage,cv::Scalar(0,0,255),2);
-        }
 
-        //draw a 3d cube in each marker if there is 3d info
-        if(camParam.isValid() && marker_size!=-1)
-        {
-          for(size_t i=0; i<markers.size(); ++i)
-          {
-            CvDrawingUtils::draw3dAxis(inImage, markers[i], camParam);
+          }else{
+
+            if(is_marker_id_in_list(markers[i].id))
+            {
+              // but drawing all the detected markers
+              cv::putText(inImage,"Multiple codes detected",position, cv::FONT_HERSHEY_SIMPLEX, 1., cv::Scalar(255,0,0,255),2);
+              markers[i].draw(inImage,cv::Scalar(255,0,0), 2, false);
+            }
           }
         }
 

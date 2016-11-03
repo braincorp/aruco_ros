@@ -213,29 +213,23 @@ namespace aruco {
 
 
 
-  void Marker::draw(Mat &in, Scalar color, int lineWidth ,bool writeId)const
+  void Marker::draw(Mat &in, Scalar color, int lineWidth , bool writeId, std::string text)const
   {
     if (size()!=4) return;
     cv::line( in,(*this)[0],(*this)[1],color,lineWidth,CV_AA);
     cv::line( in,(*this)[1],(*this)[2],color,lineWidth,CV_AA);
     cv::line( in,(*this)[2],(*this)[3],color,lineWidth,CV_AA);
     cv::line( in,(*this)[3],(*this)[0],color,lineWidth,CV_AA);
-    cv::rectangle( in,(*this)[0]-Point2f(2,2),(*this)[0]+Point2f(2,2),Scalar(0,0,255,255),lineWidth,CV_AA);
-    cv::rectangle( in,(*this)[1]-Point2f(2,2),(*this)[1]+Point2f(2,2),Scalar(0,255,0,255),lineWidth,CV_AA);
-    cv::rectangle( in,(*this)[2]-Point2f(2,2),(*this)[2]+Point2f(2,2),Scalar(255,0,0,255),lineWidth,CV_AA);
+
+    //determine the centroid
+    Point cent((*this)[0].x, (*this)[0].y - 10);
+
     if (writeId) {
       char cad[100];
       sprintf(cad,"id=%d",id);
-      //determine the centroid
-      Point cent(0,0);
-      for (int i=0;i<4;i++)
-      {
-        cent.x+=(*this)[i].x;
-        cent.y+=(*this)[i].y;
-      }
-      cent.x/=4.;
-      cent.y/=4.;
-      putText(in,cad, cent,FONT_HERSHEY_SIMPLEX, 0.5,  Scalar(255-color[0],255-color[1],255-color[2],255),2);
+      putText(in, cad, cent,FONT_HERSHEY_SIMPLEX, 0.5,  Scalar(255-color[0],255-color[1],255-color[2],255),2);
+    }else{
+      putText(in, text.c_str(), cent,FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255, 255), 2);
     }
   }
 
