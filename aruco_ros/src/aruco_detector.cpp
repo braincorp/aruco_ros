@@ -70,9 +70,9 @@ private:
   std::string camera_frame;
   std::string reference_frame;
 
-  static double expected_yaw = -M_PI / 2.;  // Use to detect code mounted upside down or twisted
-  static double expected_roll = -M_PI / 2.;  // Use to detect steep angle of approach
-  static double expected_pitch = 0.;  // Use to detect steep angle of approach
+  const static double expected_yaw = -M_PI / 2.;  // Use to detect code mounted upside down or twisted
+  const static double expected_roll = -M_PI / 2.;  // Use to detect steep angle of approach
+  const static double expected_pitch = 0.;  // Use to detect steep angle of approach
 
   double yaw_tolerance;
   double roll_tolerance;
@@ -304,12 +304,6 @@ public:
               geometry_msgs::TransformStamped transformMsg;
               tf::transformStampedTFToMsg(stampedTransform, transformMsg);
               transform_pub.publish(transformMsg);
-
-              geometry_msgs::Vector3Stamped positionMsg;
-              positionMsg.header = transformMsg.header;
-              positionMsg.vector = transformMsg.transform.translation;
-              position_pub.publish(positionMsg);
-              }
             }
           }else{
 

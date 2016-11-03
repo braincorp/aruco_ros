@@ -6,7 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   std_msgs)
 
-add_message_files( FILES Marker.msg MarkerArray.msg )
+add_message_files( FILES Marker.msg )
 generate_messages( DEPENDENCIES std_msgs geometry_msgs )
 
 catkin_package(
