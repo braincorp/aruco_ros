@@ -27,26 +27,16 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(single src/simple_single.cpp
-                      src/aruco_ros_utils.cpp)
-add_dependencies(single ${PROJECT_NAME}_gencfg)
-target_link_libraries(single ${catkin_LIBRARIES})
-
-add_executable(double src/simple_double.cpp
-                      src/aruco_ros_utils.cpp)
-add_dependencies(double ${PROJECT_NAME}_gencfg)
-target_link_libraries(double ${catkin_LIBRARIES})
-
-add_executable(marker_publisher src/marker_publish.cpp
-                                src/aruco_ros_utils.cpp)
-add_dependencies(marker_publisher ${PROJECT_NAME}_gencfg)
-target_link_libraries(marker_publisher ${catkin_LIBRARIES})
+add_executable(aruco_detector src/aruco_detector.cpp
+                              src/aruco_ros_utils.cpp)
+add_dependencies(aruco_detector ${PROJECT_NAME}_gencfg)
+target_link_libraries(aruco_detector ${catkin_LIBRARIES})
 
 #############
 ## Install ##
 #############
 
-install(TARGETS single double marker_publisher
+install(TARGETS aruco_detector
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
