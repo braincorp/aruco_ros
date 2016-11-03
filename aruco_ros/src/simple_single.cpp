@@ -178,7 +178,7 @@ public:
 
     for (unsigned i = 0; i < num_markers_in_list; ++i){
       if (marker_id[i] == id){
-        sprintf(str, "Home location %d", i);
+        sprintf(str, "Home %d", i);
         return std::string(str);
       }
     }
@@ -224,11 +224,11 @@ public:
               double min_perimeter = 130.;
 
               if (abs(yaw - expected_yaw) > M_PI/2.){
-                cv::putText(inImage,"Home code is mounted upside down",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+                cv::putText(inImage,"Code is mounted upside down",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
                 markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
               }
               else if (abs(yaw - expected_yaw) > M_PI/12.){
-                cv::putText(inImage,"Home code is twisted",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+                cv::putText(inImage,"Code is twisted",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
                 markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
               }
               else if (abs(roll - expected_roll) > M_PI/8.){
@@ -236,15 +236,15 @@ public:
                 markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
               }
               else if (abs(pitch - expected_pitch) > M_PI/8.){
-                cv::putText(inImage,"Code should be mounted flat",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+                cv::putText(inImage,"Code must be mounted flat",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
                 markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
               }
               else if (markers[i].getPerimeter() > max_perimeter){
-                cv::putText(inImage,"Too close to home location",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+                cv::putText(inImage,"Emma is too close to code",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
                 markers[i].draw(inImage,cv::Scalar(255, 0, 0), 5, false);
               }
               else if (markers[i].getPerimeter() < min_perimeter){
-                cv::putText(inImage,"Too far from home location",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+                cv::putText(inImage,"Emma is too far from code",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
                 markers[i].draw(inImage,cv::Scalar(255, 0, 0), 1, false);
               }
               else{
@@ -298,7 +298,7 @@ public:
             if(is_marker_id_in_list(markers[i].id))
             {
               // but drawing all the detected markers
-              cv::putText(inImage,"Multiple codes detected",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255),2);
+              cv::putText(inImage,"Emma detects multiple codes",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255),2);
               markers[i].draw(inImage,cv::Scalar(255,0,0), 2, false);
             }
           }
