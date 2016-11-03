@@ -65,11 +65,22 @@ private:
   image_transport::Publisher image_pub;
   image_transport::Publisher debug_pub;
   ros::Publisher pose_pub;
-  ros::Publisher transform_pub; 
-  ros::Publisher position_pub;
+  ros::Publisher transform_pub;
   std::string marker_frame;
   std::string camera_frame;
   std::string reference_frame;
+
+  static double expected_yaw = -M_PI / 2.;  // Use to detect code mounted upside down or twisted
+  static double expected_roll = -M_PI / 2.;  // Use to detect steep angle of approach
+  static double expected_pitch = 0.;  // Use to detect steep angle of approach
+
+  double yaw_tolerance;
+  double roll_tolerance;
+  double pitch_tolerance;
+  double max_perimeter;
+  double min_perimeter;
+
+  bool overlay_error_message;
 
   double marker_size;
 
@@ -88,14 +99,15 @@ public:
       nh("~"),
       it(nh)
   {
+    // Subscriber to image and camera info
     image_sub = it.subscribe("/image", 1, &ArucoSimple::image_callback, this);
     cam_info_sub = nh.subscribe("/camera_info", 1, &ArucoSimple::cam_info_callback, this);
 
-    image_pub = it.advertise("result", 1);
-    debug_pub = it.advertise("debug", 1);
     pose_pub = nh.advertise<aruco_msgs::Marker>("pose", 100);
     transform_pub = nh.advertise<geometry_msgs::TransformStamped>("transform", 100);
-    position_pub = nh.advertise<geometry_msgs::Vector3Stamped>("position", 100);
+    image_pub = it.advertise("result", 1);
+    debug_pub = it.advertise("debug", 1);
+
 
     nh.param<double>("marker_size", marker_size, 0.05);
     nh.param<int>("num_markers", num_markers_in_list, 11);
@@ -114,6 +126,13 @@ public:
     nh.param<std::string>("camera_frame", camera_frame, "");
     nh.param<std::string>("marker_frame", marker_frame, "");
     nh.param<bool>("image_is_rectified", useRectifiedImages, true);
+    nh.param<double>("min_perimeter", min_perimeter, 130.);
+    nh.param<double>("max_perimeter", max_perimeter, 375.);
+    nh.param<double>("yaw_tolerance", yaw_tolerance, M_PI/12.);
+    nh.param<double>("roll_tolerance", roll_tolerance, M_PI/8.);
+    nh.param<double>("pitch_tolerance", pitch_tolerance, M_PI/8.);
+
+    nh.param<bool>("overlay_error_message", overlay_error_message, true);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
     ROS_ASSERT(num_markers_in_list <= 11);
@@ -204,95 +223,94 @@ public:
         //Ok, let's detect
         mDetector.detect(inImage, markers, camParam, marker_size, false);
         //for each marker, draw info and its boundaries in the image
+
+        bool multiple_markers_detected = markers.size() > 1;
+        bool error_condition = false;
+        std::string error_message = "";
+
         for(size_t i=0; i<markers.size(); ++i)
         {
 
-          if (markers.size() == 1){  // Only process markers if there is only one in FOV
+          if (markers.size() == 1){
+            // Only process markers if there is only one in FOV
             // only publishing the selected markers
             if(is_marker_id_in_list(markers[i].id))
             {
 
               tf::Transform transform = aruco_ros::arucoMarker2Tf(markers[i]);
-
               double roll, pitch, yaw;
+
               tf::Matrix3x3(transform.getRotation()).getRPY(roll, pitch, yaw);
 
-              double expected_yaw = -M_PI / 2.;  // Use to detect code mounted upside down or twisted
-              double expected_roll = -M_PI / 2.;  // Use to detect steep angle of approach
-              double expected_pitch = 0.;  // Use to detect steep angle of approach
-              double max_perimeter = 375.;
-              double min_perimeter = 130.;
-
               if (abs(yaw - expected_yaw) > M_PI/2.){
-                cv::putText(inImage,"Code is mounted upside down",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+                error_message = "Code is mounted upside down";
               }
-              else if (abs(yaw - expected_yaw) > M_PI/12.){
-                cv::putText(inImage,"Code is twisted",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+              else if (abs(yaw - expected_yaw) > yaw_tolerance){
+                error_message = "Code is twisted";
               }
-              else if (abs(roll - expected_roll) > M_PI/8.){
-                cv::putText(inImage,"Park parallel to the code",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+              else if (abs(roll - expected_roll) > roll_tolerance){
+                error_message = "Park parallel to the code";
               }
-              else if (abs(pitch - expected_pitch) > M_PI/8.){
-                cv::putText(inImage,"Code must be mounted flat",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+              else if (abs(pitch - expected_pitch) > pitch_tolerance){
+                error_message = "Code must be mounted flat";
               }
               else if (markers[i].getPerimeter() > max_perimeter){
-                cv::putText(inImage,"Emma is too close to code",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 5, false);
+                error_message = "Emma is too close to code";
               }
               else if (markers[i].getPerimeter() < min_perimeter){
-                cv::putText(inImage,"Emma is too far from code",position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 1, false);
+                error_message = "Emma is too far from code";
               }
-              else{
-                  // Everything is good
-                  tf::StampedTransform cameraToReference;
-                  cameraToReference.setIdentity();
 
-                  if ( reference_frame != camera_frame )
-                  {
-                    getTransform(reference_frame,
-                                 camera_frame,
-                                 cameraToReference);
-                  }
+              if (error_condition){
+                markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+                if (overlay_error_message){
+                  cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+                }
+              }else{
+                markers[i].draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(markers[i].id));
+              }
 
-                  transform =
-                    static_cast<tf::Transform>(cameraToReference)
-                    * static_cast<tf::Transform>(rightToLeft)
-                    * transform;
+              tf::StampedTransform cameraToReference;
+              cameraToReference.setIdentity();
 
-                  tf::StampedTransform stampedTransform(transform, curr_stamp,
-                                                        reference_frame, marker_frame);
-                  br.sendTransform(stampedTransform);
+              if ( reference_frame != camera_frame )
+              {
+                getTransform(reference_frame,
+                             camera_frame,
+                             cameraToReference);
+              }
 
-                  aruco_msgs::Marker arucoMsg;
-                  arucoMsg.header.frame_id = reference_frame;
-                  arucoMsg.header.stamp = curr_stamp;
-                  arucoMsg.id = markers[i].id;
-                  arucoMsg.confidence = 1.0;
+              transform =
+                static_cast<tf::Transform>(cameraToReference)
+                * static_cast<tf::Transform>(rightToLeft)
+                * transform;
 
-                  geometry_msgs::PoseWithCovariance poseMsg;
-                  tf::poseTFToMsg(transform, poseMsg.pose);
+              tf::StampedTransform stampedTransform(transform, curr_stamp,
+                                                    reference_frame, marker_frame);
+              br.sendTransform(stampedTransform);
 
-                  arucoMsg.pose = poseMsg;
-                  pose_pub.publish(arucoMsg);
+              aruco_msgs::Marker arucoMsg;
+              arucoMsg.header.frame_id = reference_frame;
+              arucoMsg.header.stamp = curr_stamp;
+              arucoMsg.id = markers[i].id;
+              arucoMsg.confidence = 1.0;
 
-                  geometry_msgs::TransformStamped transformMsg;
-                  tf::transformStampedTFToMsg(stampedTransform, transformMsg);
-                  transform_pub.publish(transformMsg);
+              geometry_msgs::PoseWithCovariance poseMsg;
+              tf::poseTFToMsg(transform, poseMsg.pose);
 
-                  geometry_msgs::Vector3Stamped positionMsg;
-                  positionMsg.header = transformMsg.header;
-                  positionMsg.vector = transformMsg.transform.translation;
-                  position_pub.publish(positionMsg);
-                  markers[i].draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(markers[i].id));
-                  
+              arucoMsg.pose = poseMsg;
+              pose_pub.publish(arucoMsg);
+
+              geometry_msgs::TransformStamped transformMsg;
+              tf::transformStampedTFToMsg(stampedTransform, transformMsg);
+              transform_pub.publish(transformMsg);
+
+              geometry_msgs::Vector3Stamped positionMsg;
+              positionMsg.header = transformMsg.header;
+              positionMsg.vector = transformMsg.transform.translation;
+              position_pub.publish(positionMsg);
               }
             }
-
           }else{
 
             if(is_marker_id_in_list(markers[i].id))
@@ -302,7 +320,11 @@ public:
               markers[i].draw(inImage,cv::Scalar(255,0,0), 2, false);
             }
           }
+
         }
+        if (multiple_markers_detected){
+        }
+
 
         if(image_pub.getNumSubscribers() > 0)
         {
