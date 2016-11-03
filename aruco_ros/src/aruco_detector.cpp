@@ -239,11 +239,11 @@ public:
     // Note that order is important for error message
     // All error codes will be forwarded, so this is important
     // only if error messages are overlayed on the camera image
-    if (remainder (roll - expected_roll, 2*M_PI) > roll_tolerance){
+    if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
       error_message = arucoMsg.ANGLE_TOO_STEEP_MESSAGE;
       error_condition |= arucoMsg.ANGLE_TOO_STEEP;
     }
-    if (remainder (pitch - expected_pitch, 2*M_PI) > pitch_tolerance){
+    if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
       error_message = arucoMsg.CODE_NOT_FLAT_MESSAGE;
       error_condition |= arucoMsg.CODE_NOT_FLAT;
     }
@@ -255,11 +255,11 @@ public:
       error_message = arucoMsg.TOO_FAR_MESSAGE;
       error_condition |= arucoMsg.TOO_FAR;
     }
-    if (remainder(yaw - expected_yaw, 2*M_PI)  > yaw_tolerance){
+    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
       error_message = arucoMsg.CODE_TWISTED_MESSAGE;
       error_condition |= arucoMsg.CODE_TWISTED;
     }
-    if (remainder(yaw - expected_yaw, 2*M_PI)  > M_PI/2.){
+    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
       error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
       error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
     }
@@ -339,6 +339,10 @@ public:
           // only publishing the selected markers
           process_marker(markers[0], curr_stamp);
         }else if (markers.size() > 1){
+
+          for (int i=0; i<markers.size(); ++i){
+            markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+          }
           // If multiple aruco code have been detected, return the error message
           aruco_msgs::Marker arucoMsg;
           arucoMsg.header.frame_id = reference_frame;
