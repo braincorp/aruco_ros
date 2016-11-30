@@ -115,11 +115,11 @@ public:
     nh.param<double>("marker_size", marker_size, 0.10);
     nh.param<int>("num_markers", num_markers_in_list, 11);
     nh.param<int>("marker_id_0", marker_id[0], 500);
-    nh.param<int>("marker_id_1", marker_id[1], 582);
+    nh.param<int>("marker_id_3", marker_id[1], 614);
     nh.param<int>("marker_id_2", marker_id[2], 590);
-    nh.param<int>("marker_id_3", marker_id[3], 614);
+    nh.param<int>("marker_id_5", marker_id[3], 750);
     nh.param<int>("marker_id_4", marker_id[4], 625);
-    nh.param<int>("marker_id_5", marker_id[5], 750);
+    nh.param<int>("marker_id_1", marker_id[5], 582);
     nh.param<int>("marker_id_6", marker_id[6], 785);
     nh.param<int>("marker_id_7", marker_id[7], 798);
     nh.param<int>("marker_id_8", marker_id[8], 825);
