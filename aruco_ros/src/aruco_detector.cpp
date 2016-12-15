@@ -264,7 +264,7 @@ public:
       error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
     }
 
-    // Get TF and broadcast it
+    // Get TF between camera and reference frame
     tf::StampedTransform cameraToReference;
     cameraToReference.setIdentity();
 
@@ -290,6 +290,7 @@ public:
       marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
     }
 
+    // Get total TF between aruco code and reference frame, and broadcast it
     transform =
       static_cast<tf::Transform>(cameraToReference)
       * static_cast<tf::Transform>(rightToLeft)
