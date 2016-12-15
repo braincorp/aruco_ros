@@ -13,9 +13,6 @@
 
         <arg name="parameters_path" default="$(find shining_ros)/param/ice"/>
 
-        <node pkg="tf" type="static_transform_publisher" name="static_transform_marker_to_map"
-                args="-1. 0. 0. 0. 1.57 0. /aruco_marker_frame /map_origin 100" required="true"/>
-
         <arg name="markerSize"      default="0.114"/>    <!-- in m -->
         <arg name="camera_name"     default="marker_cam"/>
 
