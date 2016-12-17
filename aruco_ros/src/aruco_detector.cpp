@@ -264,6 +264,20 @@ public:
       error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
     }
 
+    // Get TF between camera and reference frame
+    tf::StampedTransform cameraToReference;
+    cameraToReference.setIdentity();
+
+    if ( reference_frame != camera_frame )
+    {
+      if (!getTransform(reference_frame,
+                        camera_frame,
+                        cameraToReference)) {
+        error_message = arucoMsg.NO_TRANSFORM_MESSAGE;
+        error_condition |= arucoMsg.NO_TRANSFORM;
+      }
+    }
+
     // Only overlay error message on the image when at least one error condition has been met
     // In this condition, also draw a red rectangle around the code
     if (error_condition > 0){
@@ -276,17 +290,7 @@ public:
       marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
     }
 
-    // Get TF and broadcast it
-    tf::StampedTransform cameraToReference;
-    cameraToReference.setIdentity();
-
-    if ( reference_frame != camera_frame )
-    {
-      getTransform(reference_frame,
-                   camera_frame,
-                   cameraToReference);
-    }
-
+    // Get total TF between aruco code and reference frame, and broadcast it
     transform =
       static_cast<tf::Transform>(cameraToReference)
       * static_cast<tf::Transform>(rightToLeft)
