@@ -80,6 +80,7 @@ private:
   double max_distance;
   double min_distance;
 
+  bool check_error;
   bool overlay_error_message;
 
   cv::Point position;
@@ -138,6 +139,7 @@ public:
     nh.param<double>("roll_tolerance", roll_tolerance, M_PI/8.);
     nh.param<double>("pitch_tolerance", pitch_tolerance, M_PI/8.);
 
+    nh.param<bool>("check_error", check_error, true);
     nh.param<bool>("overlay_error_message", overlay_error_message, true);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
@@ -235,33 +237,36 @@ public:
 
     tf::Matrix3x3(transform.getRotation()).getRPY(roll, pitch, yaw);
 
-    // Test for erroneous conditions
-    // Note that order is important for error message
-    // All error codes will be forwarded, so this is important
-    // only if error messages are overlayed on the camera image
-    if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
-      error_message = arucoMsg.ANGLE_TOO_STEEP_MESSAGE;
-      error_condition |= arucoMsg.ANGLE_TOO_STEEP;
-    }
-    if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
-      error_message = arucoMsg.CODE_NOT_FLAT_MESSAGE;
-      error_condition |= arucoMsg.CODE_NOT_FLAT;
-    }
-    if (marker.getDistanceFromCamera() < min_distance){
-      error_message = arucoMsg.TOO_CLOSE_MESSAGE;
-      error_condition |= arucoMsg.TOO_CLOSE;
-    }
-    if (marker.getDistanceFromCamera() > max_distance){
-      error_message = arucoMsg.TOO_FAR_MESSAGE;
-      error_condition |= arucoMsg.TOO_FAR;
-    }
-    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
-      error_message = arucoMsg.CODE_TWISTED_MESSAGE;
-      error_condition |= arucoMsg.CODE_TWISTED;
-    }
-    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
-      error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
-      error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
+
+    if (check_error) {
+      // Test for erroneous conditions
+      // Note that order is important for error message
+      // All error codes will be forwarded, so this is important
+      // only if error messages are overlayed on the camera image
+      if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
+        error_message = arucoMsg.ANGLE_TOO_STEEP_MESSAGE;
+        error_condition |= arucoMsg.ANGLE_TOO_STEEP;
+      }
+      if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
+        error_message = arucoMsg.CODE_NOT_FLAT_MESSAGE;
+        error_condition |= arucoMsg.CODE_NOT_FLAT;
+      }
+      if (marker.getDistanceFromCamera() < min_distance){
+        error_message = arucoMsg.TOO_CLOSE_MESSAGE;
+        error_condition |= arucoMsg.TOO_CLOSE;
+      }
+      if (marker.getDistanceFromCamera() > max_distance){
+        error_message = arucoMsg.TOO_FAR_MESSAGE;
+        error_condition |= arucoMsg.TOO_FAR;
+      }
+      if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
+        error_message = arucoMsg.CODE_TWISTED_MESSAGE;
+        error_condition |= arucoMsg.CODE_TWISTED;
+      }
+      if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
+        error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
+        error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
+      }
     }
 
     // Get TF between camera and reference frame
