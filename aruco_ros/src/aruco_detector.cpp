@@ -234,9 +234,23 @@ public:
     unsigned int error_condition = 0;
     std::string error_message = "";
     static tf::TransformBroadcaster br;
+    bool hasTransformToReference;
 
     tf::Matrix3x3(transform.getRotation()).getRPY(roll, pitch, yaw);
 
+    // Get TF between camera and reference frame
+    tf::StampedTransform cameraToReference;
+    cameraToReference.setIdentity();
+    hasTransformToReference = true;
+
+    if ( reference_frame != camera_frame )
+    {
+      if (!getTransform(reference_frame,
+                        camera_frame,
+                        cameraToReference)) {
+          hasTransformToReference = false;
+      }
+    }
 
     if (check_error) {
       // Test for erroneous conditions
@@ -267,32 +281,23 @@ public:
         error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
         error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
       }
-    }
-
-    // Get TF between camera and reference frame
-    tf::StampedTransform cameraToReference;
-    cameraToReference.setIdentity();
-
-    if ( reference_frame != camera_frame )
-    {
-      if (!getTransform(reference_frame,
-                        camera_frame,
-                        cameraToReference)) {
+      if (!hasTransformToReference) {
         error_message = arucoMsg.NO_TRANSFORM_MESSAGE;
         error_condition |= arucoMsg.NO_TRANSFORM;
       }
-    }
 
-    // Only overlay error message on the image when at least one error condition has been met
-    // In this condition, also draw a red rectangle around the code
-    if (error_condition > 0){
-      marker.draw(inImage,cv::Scalar(255, 0, 0), 2, false);
-      if (overlay_error_message){
-        cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-      }
-    }else{
-      // Otherwise, draw a green rectangle around the detected code (Green = success)
+
+      // Only overlay error message on the image when at least one error condition has been met
+      // In this condition, also draw a red rectangle around the code
+      if (error_condition > 0){
+        marker.draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+        if (overlay_error_message){
+          cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+        }
+      }else{
+        // Otherwise, draw a green rectangle around the detected code (Green = success)
       marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
+      }
     }
 
     // Get total TF between aruco code and reference frame, and broadcast it
