@@ -70,17 +70,16 @@ private:
   std::string camera_frame;
   std::string reference_frame;
 
-  const static double expected_yaw = -M_PI / 2.;  // Use to detect code mounted upside down or twisted
-  const static double expected_roll = -M_PI / 2.;  // Use to detect steep angle of approach
-  const static double expected_pitch = 0.;  // Use to detect steep angle of approach
-
   double yaw_tolerance;
   double roll_tolerance;
   double pitch_tolerance;
   double max_distance;
   double min_distance;
+  double expected_yaw;  // Use to detect code mounted upside down or twisted
+  double expected_roll;  // Use to detect steep angle of approach
+  double expected_pitch;  // Use to detect steep angle of approach
 
-  bool check_error;
+  bool overlay_bounding_box;
   bool overlay_error_message;
 
   cv::Point position;
@@ -138,8 +137,11 @@ public:
     nh.param<double>("yaw_tolerance", yaw_tolerance, M_PI/12.);
     nh.param<double>("roll_tolerance", roll_tolerance, M_PI/8.);
     nh.param<double>("pitch_tolerance", pitch_tolerance, M_PI/8.);
+    nh.param<double>("expected_yaw", expected_yaw, -M_PI/2);
+    nh.param<double>("expected_roll", expected_roll, -M_PI/2);
+    nh.param<double>("expected_pitch", expected_pitch, 0.);
 
-    nh.param<bool>("check_error", check_error, true);
+    nh.param<bool>("overlay_bounding_box", overlay_bounding_box, true);
     nh.param<bool>("overlay_error_message", overlay_error_message, true);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
@@ -252,41 +254,40 @@ public:
       }
     }
 
-    if (check_error) {
-      // Test for erroneous conditions
-      // Note that order is important for error message
-      // All error codes will be forwarded, so this is important
-      // only if error messages are overlayed on the camera image
-      if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
-        error_message = arucoMsg.ANGLE_TOO_STEEP_MESSAGE;
-        error_condition |= arucoMsg.ANGLE_TOO_STEEP;
-      }
-      if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
-        error_message = arucoMsg.CODE_NOT_FLAT_MESSAGE;
-        error_condition |= arucoMsg.CODE_NOT_FLAT;
-      }
-      if (marker.getDistanceFromCamera() < min_distance){
-        error_message = arucoMsg.TOO_CLOSE_MESSAGE;
-        error_condition |= arucoMsg.TOO_CLOSE;
-      }
-      if (marker.getDistanceFromCamera() > max_distance){
-        error_message = arucoMsg.TOO_FAR_MESSAGE;
-        error_condition |= arucoMsg.TOO_FAR;
-      }
-      if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
-        error_message = arucoMsg.CODE_TWISTED_MESSAGE;
-        error_condition |= arucoMsg.CODE_TWISTED;
-      }
-      if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
-        error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
-        error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
-      }
-      if (!hasTransformToReference) {
-        error_message = arucoMsg.NO_TRANSFORM_MESSAGE;
-        error_condition |= arucoMsg.NO_TRANSFORM;
-      }
+    // Test for erroneous conditions
+    // Note that order is important for error message
+    // All error codes will be forwarded, so this is important
+    // only if error messages are overlayed on the camera image
+    if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
+      error_message = arucoMsg.ANGLE_TOO_STEEP_MESSAGE;
+      error_condition |= arucoMsg.ANGLE_TOO_STEEP;
+    }
+    if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
+      error_message = arucoMsg.CODE_NOT_FLAT_MESSAGE;
+      error_condition |= arucoMsg.CODE_NOT_FLAT;
+    }
+    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
+      error_message = arucoMsg.CODE_TWISTED_MESSAGE;
+      error_condition |= arucoMsg.CODE_TWISTED;
+    }
+    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
+      error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
+      error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
+    }
+    if (marker.getDistanceFromCamera() < min_distance){
+      error_message = arucoMsg.TOO_CLOSE_MESSAGE;
+      error_condition |= arucoMsg.TOO_CLOSE;
+    }
+    if (marker.getDistanceFromCamera() > max_distance){
+      error_message = arucoMsg.TOO_FAR_MESSAGE;
+      error_condition |= arucoMsg.TOO_FAR;
+    }
+    if (!hasTransformToReference) {
+      error_message = arucoMsg.NO_TRANSFORM_MESSAGE;
+      error_condition |= arucoMsg.NO_TRANSFORM;
+    }
 
-
+    if (overlay_bounding_box) {
       // Only overlay error message on the image when at least one error condition has been met
       // In this condition, also draw a red rectangle around the code
       if (error_condition > 0){
@@ -294,9 +295,9 @@ public:
         if (overlay_error_message){
           cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
         }
-      }else{
+      } else {
         // Otherwise, draw a green rectangle around the detected code (Green = success)
-      marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
+        marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
       }
     }
 
