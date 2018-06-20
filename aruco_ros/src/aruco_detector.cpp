@@ -46,6 +46,7 @@ or implied, of Rafael Muñoz Salinas.
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <aruco_ros/aruco_ros_utils.h>
+#include <aruco_ros/aruco_image.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 
@@ -229,7 +230,7 @@ public:
   * process_marker: Publish information about marker (pose and tf)
   * input Marker
   */
-  void process_marker(Marker& marker, ros::Time& curr_stamp){
+  unsigned int process_marker(Marker& marker, ros::Time& curr_stamp){
     tf::Transform transform = aruco_ros::arucoMarker2Tf(marker);
     aruco_msgs::Marker arucoMsg;
     double roll, pitch, yaw;
@@ -328,10 +329,13 @@ public:
     arucoMsg.error_message = error_message;
     arucoMsg.pose = poseMsg;
     pose_pub.publish(arucoMsg);
+
+    return error_condition;
   }
 
   void image_callback(const sensor_msgs::ImageConstPtr& msg)
   {
+    unsigned int error_condition;
     ros::Time curr_stamp(ros::Time::now());
     if(cam_info_received)
     {
@@ -352,7 +356,7 @@ public:
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
           // Only process markers if there is only one known marker in FOV
           // only publishing the selected markers
-          process_marker(markers[0], curr_stamp);
+          error_condition = process_marker(markers[0], curr_stamp);
         }else if (markers.size() > 1){
 
           for (int i=0; i<markers.size(); ++i){
@@ -372,21 +376,23 @@ public:
         if(image_pub.getNumSubscribers() > 0)
         {
           //show input with augmented information
-          cv_bridge::CvImage out_msg;
+          aruco_ros::CvArucoImage out_msg;
           out_msg.header.stamp = curr_stamp;
           out_msg.encoding = sensor_msgs::image_encodings::RGB8;
           out_msg.image = inImage;
-          image_pub.publish(out_msg.toImageMsg());
+          out_msg.error_code = error_condition;
+          image_pub.publish(out_msg.toArucoImageMsg());
         }
 
         if(debug_pub.getNumSubscribers() > 0)
         {
           //show also the internal image resulting from the threshold operation
-          cv_bridge::CvImage debug_msg;
+          aruco_ros::CvArucoImage debug_msg;
           debug_msg.header.stamp = curr_stamp;
           debug_msg.encoding = sensor_msgs::image_encodings::MONO8;
           debug_msg.image = mDetector.getThresholdedImage();
-          debug_pub.publish(debug_msg.toImageMsg());
+          debug_msg.error_code = error_condition;
+          debug_pub.publish(debug_msg.toArucoImageMsg());
         }
       }
       catch (cv_bridge::Exception& e)
