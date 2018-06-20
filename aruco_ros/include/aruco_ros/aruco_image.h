@@ -1,17 +1,18 @@
 #ifndef ARUCO_IMAGE_H
 #define ARUCO_IMAGE_H
 
-#include <ros/ros.h>
-#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
+#include <cv_bridge/cv_bridge.h>
 #include <boost/shared_ptr.hpp>
 
+//------------------------------------------------------------------------------
 namespace aruco_ros {
+//------------------------------------------------------------------------------
 
 struct ArucoImage : public sensor_msgs::Image {
 
   ArucoImage()
-  : error_code(0) {};
+  : error_code(0) {}
 
   // For whatever reasons that someone smarter than me could probably understand, these are public static
   // methods that DO exist in the base class (sensor_msgs::Image) but can't be seen by its derived classes
@@ -58,5 +59,8 @@ struct CvArucoImage : public cv_bridge::CvImage {
 typedef boost::shared_ptr<CvArucoImage> CvArucoImagePtr;
 typedef boost::shared_ptr<CvArucoImage const> CvArucoImageConstPtr;
 
-} // aruco_ros::
+//------------------------------------------------------------------------------
+}
+//------------------------------------------------------------------------------
+
 #endif // ARUCO_IMAGE_H

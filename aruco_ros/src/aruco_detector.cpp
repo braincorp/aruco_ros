@@ -352,20 +352,21 @@ public:
         mDetector.detect(inImage, markers, camParam, marker_size, false);
         //for each marker, draw info and its boundaries in the image
 
-
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
           // Only process markers if there is only one known marker in FOV
           // only publishing the selected markers
           error_condition = process_marker(markers[0], curr_stamp);
         }else if (markers.size() > 1){
 
-          for (int i=0; i<markers.size(); ++i){
+          for (int i=0; overlay_bounding_box && i<markers.size(); ++i){
             markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
           }
           // If multiple aruco code have been detected, return the error message
           aruco_msgs::Marker arucoMsg;
+          error_condition = arucoMsg.MORE_THAN_ONE_CODE;
+
           arucoMsg.header.frame_id = reference_frame;
-          arucoMsg.error_code = arucoMsg.MORE_THAN_ONE_CODE;
+          arucoMsg.error_code = error_condition;
           arucoMsg.error_message = arucoMsg.MORE_THAN_ONE_CODE_MESSAGE;
           pose_pub.publish(arucoMsg);
           if (overlay_error_message){
