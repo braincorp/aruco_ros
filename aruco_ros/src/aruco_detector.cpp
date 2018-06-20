@@ -244,15 +244,11 @@ public:
     // Get TF between camera and reference frame
     tf::StampedTransform cameraToReference;
     cameraToReference.setIdentity();
-    hasTransformToReference = true;
 
-    if ( reference_frame != camera_frame )
-    {
-      if (!getTransform(reference_frame,
-                        camera_frame,
-                        cameraToReference)) {
-          hasTransformToReference = false;
-      }
+    if ( reference_frame == camera_frame ) {
+      hasTransformToReference = true;
+    } else {
+      hasTransformToReference = getTransform(reference_frame, camera_frame, cameraToReference);
     }
 
     // Test for erroneous conditions
