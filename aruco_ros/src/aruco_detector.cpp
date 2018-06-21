@@ -256,32 +256,32 @@ public:
     // All error codes will be forwarded, so this is important
     // only if error messages are overlayed on the camera image
     if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
-      error_message = arucoMsg.ANGLE_TOO_STEEP_MESSAGE;
-      error_condition |= arucoMsg.ANGLE_TOO_STEEP;
+      error_message = aruco_msgs::Marker::ANGLE_TOO_STEEP_MESSAGE;
+      error_condition |= aruco_msgs::Marker::ANGLE_TOO_STEEP;
     }
     if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
-      error_message = arucoMsg.CODE_NOT_FLAT_MESSAGE;
-      error_condition |= arucoMsg.CODE_NOT_FLAT;
+      error_message = aruco_msgs::Marker::CODE_NOT_FLAT_MESSAGE;
+      error_condition |= aruco_msgs::Marker::CODE_NOT_FLAT;
     }
     if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
-      error_message = arucoMsg.CODE_TWISTED_MESSAGE;
-      error_condition |= arucoMsg.CODE_TWISTED;
+      error_message = aruco_msgs::Marker::CODE_TWISTED_MESSAGE;
+      error_condition |= aruco_msgs::Marker::CODE_TWISTED;
     }
     if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
-      error_message = arucoMsg.CODE_UPSIDE_DOWN_MESSAGE;
-      error_condition |= arucoMsg.CODE_UPSIDE_DOWN;
+      error_message = aruco_msgs::Marker::CODE_UPSIDE_DOWN_MESSAGE;
+      error_condition |= aruco_msgs::Marker::CODE_UPSIDE_DOWN;
     }
     if (marker.getDistanceFromCamera() < min_distance){
-      error_message = arucoMsg.TOO_CLOSE_MESSAGE;
-      error_condition |= arucoMsg.TOO_CLOSE;
+      error_message = aruco_msgs::Marker::TOO_CLOSE_MESSAGE;
+      error_condition |= aruco_msgs::Marker::TOO_CLOSE;
     }
     if (marker.getDistanceFromCamera() > max_distance){
-      error_message = arucoMsg.TOO_FAR_MESSAGE;
-      error_condition |= arucoMsg.TOO_FAR;
+      error_message = aruco_msgs::Marker::TOO_FAR_MESSAGE;
+      error_condition |= aruco_msgs::Marker::TOO_FAR;
     }
     if (!hasTransformToReference) {
-      error_message = arucoMsg.NO_TRANSFORM_MESSAGE;
-      error_condition |= arucoMsg.NO_TRANSFORM;
+      error_message = aruco_msgs::Marker::NO_TRANSFORM_MESSAGE;
+      error_condition |= aruco_msgs::Marker::NO_TRANSFORM;
     }
 
     if (overlay_bounding_box) {
@@ -331,7 +331,7 @@ public:
 
   void image_callback(const sensor_msgs::ImageConstPtr& msg)
   {
-    unsigned int error_condition;
+    unsigned int error_code;
     ros::Time curr_stamp(ros::Time::now());
     if(cam_info_received)
     {
@@ -351,22 +351,23 @@ public:
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
           // Only process markers if there is only one known marker in FOV
           // only publishing the selected markers
-          error_condition = process_marker(markers[0], curr_stamp);
+          error_code = process_marker(markers[0], curr_stamp);
         }else if (markers.size() > 1){
 
           for (int i=0; overlay_bounding_box && i<markers.size(); ++i){
             markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
           }
           // If multiple aruco code have been detected, return the error message
-          aruco_msgs::Marker arucoMsg;
-          error_condition = arucoMsg.MORE_THAN_ONE_CODE;
+          error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
+          std::string error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
 
+          aruco_msgs::Marker arucoMsg;
           arucoMsg.header.frame_id = reference_frame;
-          arucoMsg.error_code = error_condition;
-          arucoMsg.error_message = arucoMsg.MORE_THAN_ONE_CODE_MESSAGE;
+          arucoMsg.error_code = error_code;
+          arucoMsg.error_message = error_message;
           pose_pub.publish(arucoMsg);
           if (overlay_error_message){
-            cv::putText(inImage, arucoMsg.MORE_THAN_ONE_CODE_MESSAGE.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+            cv::putText(inImage, error_message, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
           }
         }
 
@@ -377,7 +378,7 @@ public:
           out_msg.header.stamp = curr_stamp;
           out_msg.encoding = sensor_msgs::image_encodings::RGB8;
           out_msg.image = inImage;
-          out_msg.error_code = error_condition;
+          out_msg.error_code = error_code;
           image_pub.publish(out_msg.toArucoImageMsg());
         }
 
@@ -388,7 +389,7 @@ public:
           debug_msg.header.stamp = curr_stamp;
           debug_msg.encoding = sensor_msgs::image_encodings::MONO8;
           debug_msg.image = mDetector.getThresholdedImage();
-          debug_msg.error_code = error_condition;
+          debug_msg.error_code = error_code;
           debug_pub.publish(debug_msg.toArucoImageMsg());
         }
       }
