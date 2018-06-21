@@ -12,6 +12,8 @@ namespace aruco_ros {
 //------------------------------------------------------------------------------
 
 struct ArucoImage : public sensor_msgs::Image {
+  friend class CvArucoImage;
+
   ArucoImage()
   : marker_corners(4, std::vector<float>(2))
   , marker_id(-1)
@@ -35,14 +37,6 @@ struct ArucoImage : public sensor_msgs::Image {
     return stream.getData();
   }
 
-  void setMarker(const aruco::Marker marker) {
-    marker_id = marker.id;
-    for (int i = 0; i < marker_corners.size(); ++i) {
-      marker_corners[i][0] = marker[i].x;
-      marker_corners[i][1] = marker[i].y;
-    }
-  }
-
   aruco::Marker getMarker() const {
     std::vector<cv::Point2f> point2fVec(marker_corners.size());
     for (int i = 0; i < marker_corners.size(); ++i) {
@@ -57,6 +51,14 @@ struct ArucoImage : public sensor_msgs::Image {
 
 private:
   std::vector<std::vector<float> > marker_corners;
+
+  void setMarker(const aruco::Marker marker) {
+    marker_id = marker.id;
+    for (int i = 0; i < marker_corners.size(); ++i) {
+      marker_corners[i][0] = marker[i].x;
+      marker_corners[i][1] = marker[i].y;
+    }
+  }
 };
 typedef boost::shared_ptr<ArucoImage> ArucoImagePtr;
 typedef boost::shared_ptr<ArucoImage const> ArucoImageConstPtr;
