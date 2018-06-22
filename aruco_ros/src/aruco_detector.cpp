@@ -46,7 +46,7 @@ or implied, of Rafael Muñoz Salinas.
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <aruco_ros/aruco_ros_utils.h>
-#include <aruco_ros/aruco_image.h>
+#include <aruco_ros/aruco_image.hpp>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 
