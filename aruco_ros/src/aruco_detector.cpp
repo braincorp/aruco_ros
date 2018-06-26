@@ -88,6 +88,7 @@ private:
 
   int marker_id[11]; // Hardcoded, max number of aruco code that can be detected is 11
   int num_markers_in_list; //
+  int camera_rotation;
 
   ros::NodeHandle nh;
   image_transport::ImageTransport it;
@@ -102,6 +103,7 @@ public:
       it(nh),
       position(0,30)
   {
+    bool rotate_camera_90;
     // Subscriber to image and camera info
     image_sub = it.subscribe("/image", 1, &ArucoSimple::image_callback, this);
     cam_info_sub = nh.subscribe("/camera_info", 1, &ArucoSimple::cam_info_callback, this);
@@ -144,8 +146,16 @@ public:
     nh.param<bool>("overlay_bounding_box", overlay_bounding_box, true);
     nh.param<bool>("overlay_error_message", overlay_error_message, true);
 
+    nh.param<bool>("rotate_camera_90", rotate_camera_90, false);
+
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
     ROS_ASSERT(num_markers_in_list <= 11);
+
+    if (rotate_camera_90) {
+      camera_rotation = aruco_msgs::Marker::ROTATE_90_DEG;
+    } else {
+      camera_rotation = aruco_msgs::Marker::NO_ROTATION;
+    }
 
     if ( reference_frame.empty() )
       reference_frame = camera_frame;
@@ -323,6 +333,7 @@ public:
     arucoMsg.error_code = error_condition;
     arucoMsg.error_message = error_message;
     arucoMsg.pose = poseMsg;
+    arucoMsg.camera_rotation = camera_rotation;
 
     for (int i = 0; i < marker.size(); ++i) {
       arucoMsg.corners.push_back(marker[i].x);
@@ -365,6 +376,7 @@ public:
           arucoMsg.header.frame_id = reference_frame;
           arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
           arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
+          arucoMsg.camera_rotation = camera_rotation;
           pose_pub.publish(arucoMsg);
           if (overlay_error_message){
             cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);

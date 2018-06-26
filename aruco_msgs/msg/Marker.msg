@@ -18,7 +18,12 @@ uint32 TOO_FAR                             = 32
 uint32 MORE_THAN_ONE_CODE                  = 64
 uint32 NO_TRANSFORM                        = 128
 
+# Camera rotation
+uint32 NO_ROTATION                          = 0
+uint32 ROTATE_90_DEG                        = 1
+
 Header header
+uint32 camera_rotation
 uint32 id
 uint32 home_id
 uint32 error_code
