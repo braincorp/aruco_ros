@@ -356,20 +356,18 @@ public:
           process_marker(markers[0], curr_stamp);
         }else if (markers.size() > 1){
 
-          for (int i=0; overlay_bounding_box && i<markers.size(); ++i){
+          for (int i=0; overlay_bounding_box && i<markers.size(); ++i) {
             markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
           }
           // If multiple aruco code have been detected, return the error message
-          error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
-          std::string error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
 
           aruco_msgs::Marker arucoMsg;
           arucoMsg.header.frame_id = reference_frame;
-          arucoMsg.error_code = error_code;
-          arucoMsg.error_message = error_message;
+          arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
+          arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
           pose_pub.publish(arucoMsg);
           if (overlay_error_message){
-            cv::putText(inImage, error_message, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+            cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
           }
         }
 
