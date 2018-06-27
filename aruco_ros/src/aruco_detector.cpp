@@ -373,9 +373,11 @@ public:
             }
           }
           arucoMsg.header.frame_id = reference_frame;
+          arucoMsg.header.stamp = curr_stamp;
           arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
           arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
           pose_pub.publish(arucoMsg);
+
           if (overlay_error_message){
             cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
           }
