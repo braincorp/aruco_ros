@@ -36,6 +36,7 @@ or implied, of Rafael Muñoz Salinas.
 #include <iostream>
 #include <aruco/aruco.h>
 #include <aruco_msgs/Marker.h>
+#include <aruco_msgs/Corner.h>
 #include <aruco/cvdrawingutils.h>
 
 #define _USE_MATH_DEFINES
@@ -324,9 +325,11 @@ public:
     arucoMsg.error_message = error_message;
     arucoMsg.pose = poseMsg;
 
-    for (int i = 0; i < marker.size(); ++i) {
-      arucoMsg.corners.push_back(marker[i].x);
-      arucoMsg.corners.push_back(marker[i].y);
+    for (int i = 0; i < 4; ++i) {
+      aruco_msgs::Corner corner;
+      corner.x = marker[i].x;
+      corner.y = marker[i].y;
+      arucoMsg.corners.push_back(corner);
     }
     pose_pub.publish(arucoMsg);
   }
@@ -360,8 +363,15 @@ public:
             markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
           }
           // If multiple aruco code have been detected, return the error message
-
           aruco_msgs::Marker arucoMsg;
+          for (int i = 0; i < markers.size(); ++i) {
+            for (int j = 0; j < 4; ++j) {
+              aruco_msgs::Corner corner;
+              corner.x = markers[i][j].x;
+              corner.y = markers[i][j].y;
+              arucoMsg.corners.push_back(corner);
+            }
+          }
           arucoMsg.header.frame_id = reference_frame;
           arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
           arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
