@@ -25,12 +25,17 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
 add_executable(aruco_detector src/aruco_detector.cpp
+                              src/aruco_image.cpp
                               src/aruco_ros_utils.cpp)
 add_dependencies(aruco_detector ${PROJECT_NAME}_gencfg)
 target_link_libraries(aruco_detector ${catkin_LIBRARIES})
+
+add_library(aruco_ros_image src/aruco_image.cpp)
+target_link_libraries(aruco_ros_image ${catkin_LIBRARIES})
 
 #############
 ## Install ##
