@@ -248,7 +248,7 @@ public:
     tf::StampedTransform cameraToReference;
     cameraToReference.setIdentity();
 
-    if ( reference_frame == camera_frame ) {
+    if (reference_frame == camera_frame) {
       hasTransformToReference = true;
     } else {
       hasTransformToReference = getTransform(reference_frame, camera_frame, cameraToReference);
@@ -260,31 +260,31 @@ public:
     // only if error messages are overlayed on the camera image
     if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
       error_message = aruco_msgs::Marker::ANGLE_TOO_STEEP_MESSAGE;
-      error_condition |= aruco_msgs::Marker::ANGLE_TOO_STEEP;
+      error_condition = aruco_msgs::Marker::ANGLE_TOO_STEEP;
     }
-    if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
+    else if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
       error_message = aruco_msgs::Marker::CODE_NOT_FLAT_MESSAGE;
-      error_condition |= aruco_msgs::Marker::CODE_NOT_FLAT;
+      error_condition = aruco_msgs::Marker::CODE_NOT_FLAT;
     }
-    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
+    else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
       error_message = aruco_msgs::Marker::CODE_TWISTED_MESSAGE;
-      error_condition |= aruco_msgs::Marker::CODE_TWISTED;
+      error_condition = aruco_msgs::Marker::CODE_TWISTED;
     }
-    if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
+    else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
       error_message = aruco_msgs::Marker::CODE_UPSIDE_DOWN_MESSAGE;
-      error_condition |= aruco_msgs::Marker::CODE_UPSIDE_DOWN;
+      error_condition = aruco_msgs::Marker::CODE_UPSIDE_DOWN;
     }
-    if (marker.getDistanceFromCamera() < min_distance){
+    else if (marker.getDistanceFromCamera() < min_distance){
       error_message = aruco_msgs::Marker::TOO_CLOSE_MESSAGE;
-      error_condition |= aruco_msgs::Marker::TOO_CLOSE;
+      error_condition = aruco_msgs::Marker::TOO_CLOSE;
     }
-    if (marker.getDistanceFromCamera() > max_distance){
+    else if (marker.getDistanceFromCamera() > max_distance){
       error_message = aruco_msgs::Marker::TOO_FAR_MESSAGE;
-      error_condition |= aruco_msgs::Marker::TOO_FAR;
+      error_condition = aruco_msgs::Marker::TOO_FAR;
     }
-    if (!hasTransformToReference) {
+    else if (!hasTransformToReference) {
       error_message = aruco_msgs::Marker::NO_TRANSFORM_MESSAGE;
-      error_condition |= aruco_msgs::Marker::NO_TRANSFORM;
+      error_condition = aruco_msgs::Marker::NO_TRANSFORM;
     }
 
     if (overlay_bounding_box) {
@@ -329,6 +329,7 @@ public:
     arucoMsg.pose = poseMsg;
 
     // Include the corner points of the marker, so we an reconstruct its position in the UI
+    assert(marker.size() == 4);
     for (int i = 0; i < 4; ++i) {
       aruco_msgs::Corner corner;
       corner.x = marker[i].x;
@@ -340,7 +341,6 @@ public:
 
   void image_callback(const sensor_msgs::ImageConstPtr& msg)
   {
-    unsigned int error_code;
     ros::Time curr_stamp(ros::Time::now());
     if(cam_info_received)
     {
@@ -350,7 +350,9 @@ public:
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
         inImage = cv_ptr->image;
 
-        if (is_camera_rotated) { cv::rotate(inImage, inImage, cv::ROTATE_90_CLOCKWISE); }
+        if (is_camera_rotated) {
+          cv::rotate(inImage, inImage, cv::ROTATE_90_CLOCKWISE);
+        }
 
         //detection results will go into "markers"
         markers.clear();
