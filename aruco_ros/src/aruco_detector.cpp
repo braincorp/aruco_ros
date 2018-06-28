@@ -325,6 +325,7 @@ public:
     arucoMsg.error_message = error_message;
     arucoMsg.pose = poseMsg;
 
+    // Include the corner points of the marker, so we an reconstruct its position in the UI
     for (int i = 0; i < 4; ++i) {
       aruco_msgs::Corner corner;
       corner.x = marker[i].x;
@@ -358,12 +359,14 @@ public:
           // only publishing the selected markers
           process_marker(markers[0], curr_stamp);
         }else if (markers.size() > 1){
+          // If multiple aruco code have been detected, return the error message
 
           for (int i=0; overlay_bounding_box && i<markers.size(); ++i) {
             markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
           }
-          // If multiple aruco code have been detected, return the error message
+
           aruco_msgs::Marker arucoMsg;
+          // Include the corner points of all markers, so we an reconstruct their positions in the UI
           for (int i = 0; i < markers.size(); ++i) {
             for (int j = 0; j < 4; ++j) {
               aruco_msgs::Corner corner;
