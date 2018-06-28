@@ -33,7 +33,6 @@ add_executable(aruco_detector src/aruco_detector.cpp
 add_dependencies(aruco_detector ${PROJECT_NAME}_gencfg)
 target_link_libraries(aruco_detector ${catkin_LIBRARIES})
 
-
 #############
 ## Install ##
 #############
