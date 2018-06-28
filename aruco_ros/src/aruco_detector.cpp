@@ -82,6 +82,7 @@ private:
 
   bool overlay_bounding_box;
   bool overlay_error_message;
+  bool is_camera_rotated;
 
   cv::Point position;
 
@@ -144,6 +145,8 @@ public:
 
     nh.param<bool>("overlay_bounding_box", overlay_bounding_box, true);
     nh.param<bool>("overlay_error_message", overlay_error_message, true);
+
+    nh.param<bool>("is_camera_rotated", is_camera_rotated, false);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
     ROS_ASSERT(num_markers_in_list <= 11);
@@ -342,11 +345,12 @@ public:
     if(cam_info_received)
     {
       cv_bridge::CvImagePtr cv_ptr;
-
       try
       {
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
         inImage = cv_ptr->image;
+
+        if (is_camera_rotated) { cv::rotate(inImage, inImage, cv::ROTATE_90_CLOCKWISE); }
 
         //detection results will go into "markers"
         markers.clear();
