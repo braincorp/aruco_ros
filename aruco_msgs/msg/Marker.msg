@@ -24,3 +24,4 @@ uint32 home_id
 uint32 error_code
 string error_message
 geometry_msgs/PoseWithCovariance pose
+Corner[] corners
