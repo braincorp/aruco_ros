@@ -329,12 +329,8 @@ public:
     arucoMsg.pose = poseMsg;
 
     // Include the corner points of the marker, so we an reconstruct its position in the UI
-    assert(marker.size() == 4);
-    for (int i = 0; i < 4; ++i) {
-      aruco_msgs::Corner corner;
-      corner.x = marker[i].x;
-      corner.y = marker[i].y;
-      arucoMsg.corners.push_back(corner);
+    if (!overlay_bounding_box) {
+      add_marker_to_msg(marker, arucoMsg);
     }
     pose_pub.publish(arucoMsg);
   }
@@ -372,13 +368,11 @@ public:
           }
 
           aruco_msgs::Marker arucoMsg;
-          // Include the corner points of all markers, so we an reconstruct their positions in the UI
-          for (int i = 0; i < markers.size(); ++i) {
-            for (int j = 0; j < 4; ++j) {
-              aruco_msgs::Corner corner;
-              corner.x = markers[i][j].x;
-              corner.y = markers[i][j].y;
-              arucoMsg.corners.push_back(corner);
+          // If we're not overlaying error messages here, include the corner points
+          // of all markers so we an reconstruct their positions in the UI
+          if (!overlay_bounding_box) {
+            for (int i = 0; i < markers.size(); ++i) {
+              add_marker_to_msg(marker[i], arucoMsg)
             }
           }
           arucoMsg.header.frame_id = reference_frame;
@@ -439,6 +433,17 @@ public:
   }
 };
 
+
+static void
+add_marker_to_msg(Marker& marker, aruco_msgs::Marker& arucoMsg) {
+  assert(marker.size() == 4);
+  for (int i = 0; i < 4; ++i) {
+    aruco_msgs::Corner corner;
+    corner.x = marker[i].x;
+    corner.y = marker[i].y;
+    arucoMsg.corners.push_back(corner);
+  }
+}
 
 int main(int argc,char **argv)
 {
