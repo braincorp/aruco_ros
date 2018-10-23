@@ -37,6 +37,7 @@ or implied, of Rafael Muñoz Salinas.
 #include <aruco/aruco.h>
 #include <aruco_msgs/Marker.h>
 #include <aruco_msgs/Corner.h>
+#include <aruco_msgs/Feedback.h>
 #include <aruco/cvdrawingutils.h>
 
 #define _USE_MATH_DEFINES
@@ -65,6 +66,7 @@ private:
   bool cam_info_received;
   image_transport::Publisher image_pub;
   image_transport::Publisher debug_pub;
+  ros::Publisher feedback_pub;
   ros::Publisher pose_pub;
   ros::Publisher transform_pub;
   std::string marker_frame;
@@ -109,6 +111,7 @@ public:
     cam_info_sub = nh.subscribe("/camera_info", 1, &ArucoSimple::cam_info_callback, this);
 
     pose_pub = nh.advertise<aruco_msgs::Marker>("pose", 100);
+    feedback_pub = nh.advertise<aruco_msgs::Feedback>("feedback", 100);
     transform_pub = nh.advertise<geometry_msgs::TransformStamped>("transform", 100);
     image_pub = it.advertise("result", 1);
     debug_pub = it.advertise("debug", 1);
@@ -390,6 +393,19 @@ public:
           if (overlay_error_message){
             cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
           }
+        }
+
+        if(feedback_pub.getNumSubscribers() > 0)
+        {
+          aruco_msgs::Feedback feedbackMsg;
+
+          cv_bridge::CvImage out_msg;
+          out_msg.header.stamp = curr_stamp;
+          out_msg.encoding = sensor_msgs::image_encodings::RGB8;
+          out_msg.image = inImage;
+          feedbackMsg.image = *out_msg.toImageMsg();
+
+          feedback_pub.publish(feedbackMsg);
         }
 
         if(image_pub.getNumSubscribers() > 0)
