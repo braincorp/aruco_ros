@@ -236,7 +236,7 @@ public:
   * process_marker: Publish information about marker (pose and tf)
   * input Marker
   */
-  void process_marker(Marker& marker, ros::Time& curr_stamp){
+  aruco_msgs::Marker process_marker(Marker& marker, ros::Time& curr_stamp){
     tf::Transform transform = aruco_ros::arucoMarker2Tf(marker);
     aruco_msgs::Marker arucoMsg;
     double roll, pitch, yaw;
@@ -257,52 +257,52 @@ public:
       hasTransformToReference = getTransform(reference_frame, camera_frame, cameraToReference);
     }
 
-    // Test for erroneous conditions
-    // Note that order is important for error message
-    // All error codes will be forwarded, so this is important
-    // only if error messages are overlayed on the camera image
-    if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
-      error_message = aruco_msgs::Marker::ANGLE_TOO_STEEP_MESSAGE;
-      error_condition = aruco_msgs::Marker::ANGLE_TOO_STEEP;
-    }
-    else if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
-      error_message = aruco_msgs::Marker::CODE_NOT_FLAT_MESSAGE;
-      error_condition = aruco_msgs::Marker::CODE_NOT_FLAT;
-    }
-    else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
-      error_message = aruco_msgs::Marker::CODE_TWISTED_MESSAGE;
-      error_condition = aruco_msgs::Marker::CODE_TWISTED;
-    }
-    else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
-      error_message = aruco_msgs::Marker::CODE_UPSIDE_DOWN_MESSAGE;
-      error_condition = aruco_msgs::Marker::CODE_UPSIDE_DOWN;
-    }
-    else if (marker.getDistanceFromCamera() < min_distance){
-      error_message = aruco_msgs::Marker::TOO_CLOSE_MESSAGE;
-      error_condition = aruco_msgs::Marker::TOO_CLOSE;
-    }
-    else if (marker.getDistanceFromCamera() > max_distance){
-      error_message = aruco_msgs::Marker::TOO_FAR_MESSAGE;
-      error_condition = aruco_msgs::Marker::TOO_FAR;
-    }
-    else if (!hasTransformToReference) {
-      error_message = aruco_msgs::Marker::NO_TRANSFORM_MESSAGE;
-      error_condition = aruco_msgs::Marker::NO_TRANSFORM;
-    }
+    // // Test for erroneous conditions
+    // // Note that order is important for error message
+    // // All error codes will be forwarded, so this is important
+    // // only if error messages are overlayed on the camera image
+    // if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
+    //   error_message = aruco_msgs::Marker::ANGLE_TOO_STEEP_MESSAGE;
+    //   error_condition = aruco_msgs::Marker::ANGLE_TOO_STEEP;
+    // }
+    // else if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
+    //   error_message = aruco_msgs::Marker::CODE_NOT_FLAT_MESSAGE;
+    //   error_condition = aruco_msgs::Marker::CODE_NOT_FLAT;
+    // }
+    // else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
+    //   error_message = aruco_msgs::Marker::CODE_TWISTED_MESSAGE;
+    //   error_condition = aruco_msgs::Marker::CODE_TWISTED;
+    // }
+    // else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
+    //   error_message = aruco_msgs::Marker::CODE_UPSIDE_DOWN_MESSAGE;
+    //   error_condition = aruco_msgs::Marker::CODE_UPSIDE_DOWN;
+    // }
+    // else if (marker.getDistanceFromCamera() < min_distance){
+    //   error_message = aruco_msgs::Marker::TOO_CLOSE_MESSAGE;
+    //   error_condition = aruco_msgs::Marker::TOO_CLOSE;
+    // }
+    // else if (marker.getDistanceFromCamera() > max_distance){
+    //   error_message = aruco_msgs::Marker::TOO_FAR_MESSAGE;
+    //   error_condition = aruco_msgs::Marker::TOO_FAR;
+    // }
+    // else if (!hasTransformToReference) {
+    //   error_message = aruco_msgs::Marker::NO_TRANSFORM_MESSAGE;
+    //   error_condition = aruco_msgs::Marker::NO_TRANSFORM;
+    // }
 
-    if (overlay_bounding_box) {
-      // Only overlay error message on the image when at least one error condition has been met
-      // In this condition, also draw a red rectangle around the code
-      if (error_condition > 0){
-        marker.draw(inImage,cv::Scalar(255, 0, 0), 2, false);
-        if (overlay_error_message){
-          cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-        }
-      } else {
-        // Otherwise, draw a green rectangle around the detected code (Green = success)
-        marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
-      }
-    }
+    // if (overlay_bounding_box) {
+    //   // Only overlay error message on the image when at least one error condition has been met
+    //   // In this condition, also draw a red rectangle around the code
+    //   if (error_condition > 0){
+    //     marker.draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+    //     if (overlay_error_message){
+    //       cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+    //     }
+    //   } else {
+    //     // Otherwise, draw a green rectangle around the detected code (Green = success)
+    //     marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
+    //   }
+    // }
 
     // Get total TF between aruco code and reference frame, and broadcast it
     transform =
@@ -340,6 +340,7 @@ public:
       arucoMsg.corners.push_back(corner);
     }
     pose_pub.publish(arucoMsg);
+    return arucoMsg;
   }
 
   void image_callback(const sensor_msgs::ImageConstPtr& msg)
@@ -357,6 +358,7 @@ public:
           cv::rotate(inImage, inImage, cv::ROTATE_90_CLOCKWISE);
         }
 
+        std::vector<aruco_msgs::Marker> markerMsgs;
         //detection results will go into "markers"
         markers.clear();
         //Ok, let's detect
@@ -366,7 +368,8 @@ public:
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
           // Only process markers if there is only one known marker in FOV
           // only publishing the selected markers
-          process_marker(markers[0], curr_stamp);
+          aruco_msgs::Marker markerMsg = process_marker(markers[0], curr_stamp);
+          markerMsgs.push_back(markerMsg);
         }else if (markers.size() > 1){
           // If multiple aruco code have been detected, return the error message
 
@@ -389,6 +392,7 @@ public:
           arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
           arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
           pose_pub.publish(arucoMsg);
+          markerMsgs.push_back(arucoMsg);
 
           if (overlay_error_message){
             cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
@@ -404,6 +408,7 @@ public:
           out_msg.encoding = sensor_msgs::image_encodings::RGB8;
           out_msg.image = inImage;
           feedbackMsg.image = *out_msg.toImageMsg();
+          feedbackMsg.markers = markerMsgs;
 
           feedback_pub.publish(feedbackMsg);
         }
