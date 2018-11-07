@@ -257,38 +257,38 @@ public:
       hasTransformToReference = getTransform(reference_frame, camera_frame, cameraToReference);
     }
 
-    // // Test for erroneous conditions
-    // // Note that order is important for error message
-    // // All error codes will be forwarded, so this is important
-    // // only if error messages are overlayed on the camera image
-    // if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
-    //   error_message = aruco_msgs::Marker::ANGLE_TOO_STEEP_MESSAGE;
-    //   error_condition = aruco_msgs::Marker::ANGLE_TOO_STEEP;
-    // }
-    // else if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
-    //   error_message = aruco_msgs::Marker::CODE_NOT_FLAT_MESSAGE;
-    //   error_condition = aruco_msgs::Marker::CODE_NOT_FLAT;
-    // }
-    // else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
-    //   error_message = aruco_msgs::Marker::CODE_TWISTED_MESSAGE;
-    //   error_condition = aruco_msgs::Marker::CODE_TWISTED;
-    // }
-    // else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
-    //   error_message = aruco_msgs::Marker::CODE_UPSIDE_DOWN_MESSAGE;
-    //   error_condition = aruco_msgs::Marker::CODE_UPSIDE_DOWN;
-    // }
-    // else if (marker.getDistanceFromCamera() < min_distance){
-    //   error_message = aruco_msgs::Marker::TOO_CLOSE_MESSAGE;
-    //   error_condition = aruco_msgs::Marker::TOO_CLOSE;
-    // }
-    // else if (marker.getDistanceFromCamera() > max_distance){
-    //   error_message = aruco_msgs::Marker::TOO_FAR_MESSAGE;
-    //   error_condition = aruco_msgs::Marker::TOO_FAR;
-    // }
-    // else if (!hasTransformToReference) {
-    //   error_message = aruco_msgs::Marker::NO_TRANSFORM_MESSAGE;
-    //   error_condition = aruco_msgs::Marker::NO_TRANSFORM;
-    // }
+    // Test for erroneous conditions
+    // Note that order is important for error message
+    // All error codes will be forwarded, so this is important
+    // only if error messages are overlayed on the camera image
+    if (abs(remainder (roll - expected_roll, 2*M_PI)) > roll_tolerance){
+      error_message = aruco_msgs::Marker::ANGLE_TOO_STEEP_MESSAGE;
+      error_condition = aruco_msgs::Marker::ANGLE_TOO_STEEP;
+    }
+    else if (abs(remainder (pitch - expected_pitch, 2*M_PI)) > pitch_tolerance){
+      error_message = aruco_msgs::Marker::CODE_NOT_FLAT_MESSAGE;
+      error_condition = aruco_msgs::Marker::CODE_NOT_FLAT;
+    }
+    else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > yaw_tolerance){
+      error_message = aruco_msgs::Marker::CODE_TWISTED_MESSAGE;
+      error_condition = aruco_msgs::Marker::CODE_TWISTED;
+    }
+    else if (abs(remainder(yaw - expected_yaw, 2*M_PI))  > M_PI/2.){
+      error_message = aruco_msgs::Marker::CODE_UPSIDE_DOWN_MESSAGE;
+      error_condition = aruco_msgs::Marker::CODE_UPSIDE_DOWN;
+    }
+    else if (marker.getDistanceFromCamera() < min_distance){
+      error_message = aruco_msgs::Marker::TOO_CLOSE_MESSAGE;
+      error_condition = aruco_msgs::Marker::TOO_CLOSE;
+    }
+    else if (marker.getDistanceFromCamera() > max_distance){
+      error_message = aruco_msgs::Marker::TOO_FAR_MESSAGE;
+      error_condition = aruco_msgs::Marker::TOO_FAR;
+    }
+    else if (!hasTransformToReference) {
+      error_message = aruco_msgs::Marker::NO_TRANSFORM_MESSAGE;
+      error_condition = aruco_msgs::Marker::NO_TRANSFORM;
+    }
 
     // if (overlay_bounding_box) {
     //   // Only overlay error message on the image when at least one error condition has been met
