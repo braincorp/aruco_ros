@@ -37,6 +37,7 @@ or implied, of Rafael Muñoz Salinas.
 #include <aruco/aruco.h>
 #include <aruco_msgs/Marker.h>
 #include <aruco_msgs/Corner.h>
+#include <aruco_msgs/MarkerImage.h>
 #include <aruco/cvdrawingutils.h>
 
 #define _USE_MATH_DEFINES
@@ -65,6 +66,7 @@ private:
   bool cam_info_received;
   image_transport::Publisher image_pub;
   image_transport::Publisher debug_pub;
+  ros::Publisher markerImage_pub;
   ros::Publisher pose_pub;
   ros::Publisher transform_pub;
   std::string marker_frame;
@@ -109,6 +111,7 @@ public:
     cam_info_sub = nh.subscribe("/camera_info", 1, &ArucoSimple::cam_info_callback, this);
 
     pose_pub = nh.advertise<aruco_msgs::Marker>("pose", 100);
+    markerImage_pub = nh.advertise<aruco_msgs::MarkerImage>("markerImage", 100);
     transform_pub = nh.advertise<geometry_msgs::TransformStamped>("transform", 100);
     image_pub = it.advertise("result", 1);
     debug_pub = it.advertise("debug", 1);
@@ -233,7 +236,7 @@ public:
   * process_marker: Publish information about marker (pose and tf)
   * input Marker
   */
-  void process_marker(Marker& marker, ros::Time& curr_stamp){
+  aruco_msgs::Marker process_marker(Marker& marker, ros::Time& curr_stamp){
     tf::Transform transform = aruco_ros::arucoMarker2Tf(marker);
     aruco_msgs::Marker arucoMsg;
     double roll, pitch, yaw;
@@ -287,19 +290,19 @@ public:
       error_condition = aruco_msgs::Marker::NO_TRANSFORM;
     }
 
-    if (overlay_bounding_box) {
-      // Only overlay error message on the image when at least one error condition has been met
-      // In this condition, also draw a red rectangle around the code
-      if (error_condition > 0){
-        marker.draw(inImage,cv::Scalar(255, 0, 0), 2, false);
-        if (overlay_error_message){
-          cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-        }
-      } else {
-        // Otherwise, draw a green rectangle around the detected code (Green = success)
-        marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
-      }
-    }
+    // if (overlay_bounding_box) {
+    //   // Only overlay error message on the image when at least one error condition has been met
+    //   // In this condition, also draw a red rectangle around the code
+    //   if (error_condition > 0){
+    //     marker.draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+    //     if (overlay_error_message){
+    //       cv::putText(inImage, error_message.c_str(), position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+    //     }
+    //   } else {
+    //     // Otherwise, draw a green rectangle around the detected code (Green = success)
+    //     marker.draw(inImage,cv::Scalar(0, 255, 0), 4, false, get_name_from_id(marker.id));
+    //   }
+    // }
 
     // Get total TF between aruco code and reference frame, and broadcast it
     transform =
@@ -337,6 +340,7 @@ public:
       arucoMsg.corners.push_back(corner);
     }
     pose_pub.publish(arucoMsg);
+    return arucoMsg;
   }
 
   void image_callback(const sensor_msgs::ImageConstPtr& msg)
@@ -354,6 +358,7 @@ public:
           cv::rotate(inImage, inImage, cv::ROTATE_90_CLOCKWISE);
         }
 
+        std::vector<aruco_msgs::Marker> markerMsgs;
         //detection results will go into "markers"
         markers.clear();
         //Ok, let's detect
@@ -363,7 +368,8 @@ public:
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
           // Only process markers if there is only one known marker in FOV
           // only publishing the selected markers
-          process_marker(markers[0], curr_stamp);
+          aruco_msgs::Marker markerMsg = process_marker(markers[0], curr_stamp);
+          markerMsgs.push_back(markerMsg);
         }else if (markers.size() > 1){
           // If multiple aruco code have been detected, return the error message
 
@@ -386,10 +392,25 @@ public:
           arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
           arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
           pose_pub.publish(arucoMsg);
+          markerMsgs.push_back(arucoMsg);
 
           if (overlay_error_message){
             cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
           }
+        }
+
+        if(markerImage_pub.getNumSubscribers() > 0)
+        {
+          aruco_msgs::MarkerImage markerImageMsg;
+
+          cv_bridge::CvImage out_msg;
+          out_msg.header.stamp = curr_stamp;
+          out_msg.encoding = sensor_msgs::image_encodings::RGB8;
+          out_msg.image = inImage;
+          markerImageMsg.image = *out_msg.toImageMsg();
+          markerImageMsg.markers = markerMsgs;
+
+          markerImage_pub.publish(markerImageMsg);
         }
 
         if(image_pub.getNumSubscribers() > 0)
