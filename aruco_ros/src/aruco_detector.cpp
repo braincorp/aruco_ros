@@ -117,11 +117,11 @@ public:
     nh.param<double>("marker_size", marker_size, 0.10);
     nh.param<int>("num_markers", num_markers_in_list, 101);
     nh.param<int>("marker_id_0", marker_id[0], 500);
-    nh.param<int>("marker_id_1", marker_id[1], 614);
+    nh.param<int>("marker_id_1", marker_id[1], 582);
     nh.param<int>("marker_id_2", marker_id[2], 590);
-    nh.param<int>("marker_id_3", marker_id[3], 750);
+    nh.param<int>("marker_id_3", marker_id[3], 614);
     nh.param<int>("marker_id_4", marker_id[4], 625);
-    nh.param<int>("marker_id_5", marker_id[5], 582);
+    nh.param<int>("marker_id_5", marker_id[5], 750);
     nh.param<int>("marker_id_6", marker_id[6], 785);
     nh.param<int>("marker_id_7", marker_id[7], 798);
     nh.param<int>("marker_id_8", marker_id[8], 825);
@@ -244,9 +244,7 @@ public:
     if ( reference_frame.empty() )
       reference_frame = camera_frame;
 
-    ROS_INFO("Aruco node started with marker size of %f m and %d markers to track", marker_size, num_markers_in_list);// marker id to track: %d %d %d %d %d %d %d %d %d %d %d",
-//             marker_size, marker_id[0], marker_id[1], marker_id[2], marker_id[3], marker_id[4], marker_id[5],
-//             marker_id[6], marker_id[7], marker_id[8], marker_id[9], marker_id[10]);
+    ROS_INFO("Aruco node started with marker size of %f m and %d markers to track", marker_size, num_markers_in_list);
     ROS_INFO("Aruco node will publish pose to TF with %s as parent and %s as child.",
              reference_frame.c_str(), marker_frame.c_str());
   }
