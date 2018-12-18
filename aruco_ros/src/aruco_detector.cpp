@@ -88,7 +88,7 @@ private:
 
   double marker_size;
 
-  int marker_id[11]; // Hardcoded, max number of aruco code that can be detected is 11
+  int marker_id[101]; // Hardcoded, max number of aruco code that can be detected is 101
   int num_markers_in_list; //
 
   ros::NodeHandle nh;
@@ -239,14 +239,14 @@ public:
     nh.param<bool>("is_camera_rotated", is_camera_rotated, false);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
-    ROS_ASSERT(num_markers_in_list <= 11);
+    //ROS_ASSERT(num_markers_in_list <= 11);
 
     if ( reference_frame.empty() )
       reference_frame = camera_frame;
 
-    ROS_INFO("Aruco node started with marker size of %f m and marker id to track: %d %d %d %d %d %d %d %d %d %d %d",
-             marker_size, marker_id[0], marker_id[1], marker_id[2], marker_id[3], marker_id[4], marker_id[5],
-             marker_id[6], marker_id[7], marker_id[8], marker_id[9], marker_id[10]);
+    ROS_INFO("Aruco node started with marker size of %f m and %d markers to track", marker_size, num_markers_in_list);// marker id to track: %d %d %d %d %d %d %d %d %d %d %d",
+//             marker_size, marker_id[0], marker_id[1], marker_id[2], marker_id[3], marker_id[4], marker_id[5],
+//             marker_id[6], marker_id[7], marker_id[8], marker_id[9], marker_id[10]);
     ROS_INFO("Aruco node will publish pose to TF with %s as parent and %s as child.",
              reference_frame.c_str(), marker_frame.c_str());
   }
