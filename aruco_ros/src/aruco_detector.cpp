@@ -373,9 +373,9 @@ public:
         }else if (markers.size() > 1){
           // If multiple aruco code have been detected, return the error message
 
-          for (int i=0; overlay_bounding_box && i<markers.size(); ++i) {
-            markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
-          }
+          // for (int i=0; overlay_bounding_box && i<markers.size(); ++i) {
+          //   markers[i].draw(inImage,cv::Scalar(255, 0, 0), 2, false);
+          // }
 
           aruco_msgs::Marker arucoMsg;
           // Include the corner points of all markers, so we an reconstruct their positions in the UI
@@ -394,9 +394,9 @@ public:
           pose_pub.publish(arucoMsg);
           markerMsgs.push_back(arucoMsg);
 
-          if (overlay_error_message){
-            cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
-          }
+          // if (overlay_error_message){
+          //   cv::putText(inImage, aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE, position, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,0,0,255), 2);
+          // }
         }
 
         if(markerImage_pub.getNumSubscribers() > 0)
