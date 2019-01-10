@@ -161,12 +161,12 @@ public:
     nh.param<bool>("rotate_image", rotate_image, false);
     nh.param<bool>("resize_image", resize_image, false);
     nh.param<bool>("crop_image", crop_image, false);
-    nh.param<int>("resize_width", resize_width, 0);
-    nh.param<int>("resize_height", resize_height, 0);
-    nh.param<int>("crop_x", crop_x, 0);
-    nh.param<int>("crop_y", crop_y, 0);
-    nh.param<int>("crop_width", crop_width, 0);
-    nh.param<int>("crop_height", crop_height, 0);
+    nh.param<int>("resize_width", resize_width, -1);
+    nh.param<int>("resize_height", resize_height, -1);
+    nh.param<int>("crop_x", crop_x, -1);
+    nh.param<int>("crop_y", crop_y, -1);
+    nh.param<int>("crop_width", crop_width, -1);
+    nh.param<int>("crop_height", crop_height, -1);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
     ROS_ASSERT(num_markers_in_list <= 11);
