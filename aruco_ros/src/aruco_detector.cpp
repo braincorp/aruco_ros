@@ -125,15 +125,19 @@ public:
     image_pub = it.advertise("result", 1);
     debug_pub = it.advertise("debug", 1);
 
-    // ROS Param from node. Set default of 10 compatibles Aruco codes
+    // ROS Param from node. Set default of 101 compatible Aruco codes.
+    // This list represents which codes are 'seen' at all.  Further processing is done
+    //  in the UI (such as turning an aruco code into a home-code).
+    // NOTE: Ideally we'll pull this list from shining_software's params.yaml,
+    //       but this has to wait until aruco_ros is pulled into shining.
     nh.param<double>("marker_size", marker_size, 0.10);
     nh.param<int>("num_markers", num_markers_in_list, 101);
     nh.param<int>("marker_id_0", marker_id[0], 500);
-    nh.param<int>("marker_id_1", marker_id[1], 582);
+    nh.param<int>("marker_id_1", marker_id[1], 614);
     nh.param<int>("marker_id_2", marker_id[2], 590);
-    nh.param<int>("marker_id_3", marker_id[3], 614);
+    nh.param<int>("marker_id_3", marker_id[3], 750);
     nh.param<int>("marker_id_4", marker_id[4], 625);
-    nh.param<int>("marker_id_5", marker_id[5], 750);
+    nh.param<int>("marker_id_5", marker_id[5], 582);
     nh.param<int>("marker_id_6", marker_id[6], 785);
     nh.param<int>("marker_id_7", marker_id[7], 798);
     nh.param<int>("marker_id_8", marker_id[8], 825);
