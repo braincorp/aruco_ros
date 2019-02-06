@@ -6,15 +6,20 @@ Software package and ROS wrappers of the [Aruco][1] Augmented Reality marker det
 
 ### Features
 <img align="right" src="https://raw.github.com/pal-robotics/aruco_ros/master/aruco_ros/etc/marker_in_hand.jpg" />
+
  * High-framerate tracking of AR markers
+ 
  * Generate AR markers with given size and optimized for minimal perceptive ambiguity (when there are more markers to track)
+ 
  * Enhanced precision tracking by using boards of markers
+ 
  * ROS wrappers
 
 
 ### Applications
 
  * Object pose estimation
+ 
  * Visual servoing: track object and hand at the same time
 
 <img align="right" src="https://raw.github.com/pal-robotics/aruco_ros/master/aruco_ros/etc/reem_gazebo_floating_marker_world.png"/>
