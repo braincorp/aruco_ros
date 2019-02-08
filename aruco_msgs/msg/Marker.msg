@@ -25,3 +25,4 @@ uint32 error_code
 string error_message
 geometry_msgs/PoseWithCovariance pose
 Corner[] corners
+DetectionZone detection_zone

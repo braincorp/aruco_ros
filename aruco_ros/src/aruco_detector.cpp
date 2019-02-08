@@ -455,22 +455,29 @@ public:
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
         inImage = cv_ptr->image;
 
-        // Crop image
-        if (crop_image && crop_x != -1 && crop_y != -1 && crop_width != -1 && crop_height != -1) {
-          cv::Rect crop_rect(crop_x, crop_y, crop_width, crop_height);
-        }
-
         std::vector<aruco_msgs::Marker> markerMsgs;
         //detection results will go into "markers"
         markers.clear();
-        //Ok, let's detect
-        mDetector.detect(inImage(crop_rect), markers, camParam, marker_size, false);
+
+        // Only detect codes inside the detection zone
+        cv::Rect detection_zone(0, 0, camParam.width, camParam.height);
+        if (detection_zone_x != -1 && detection_zone_y != -1 && detection_zone_width != -1 && detection_zone_height != -1) {
+          detection_zone.x = detection_zone_x;
+          detection_zone.y = detection_zone_y;
+          detection_zone.width = detection_zone_width;
+          detection_zone.height = detection_zone_height;
+        }
+
+        // Detect codes
+        mDetector.detect(inImage(detection_zone), markers, camParam, marker_size, false);
+
         //for each marker, draw info and its boundaries in the image
 
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
           // Only process markers if there is only one known marker in FOV
           // only publishing the selected markers
           aruco_msgs::Marker markerMsg = process_marker(markers[0], curr_stamp);
+          markerMsg.detection_zone = detection_zone;
           markerMsgs.push_back(markerMsg);
         }else if (markers.size() > 1){
           // If multiple aruco code have been detected, return the error message
@@ -493,6 +500,7 @@ public:
           arucoMsg.header.stamp = curr_stamp;
           arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
           arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
+          arucoMsg.detection_zone = detection_zone;
           pose_pub.publish(arucoMsg);
           markerMsgs.push_back(arucoMsg);
 
