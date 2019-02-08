@@ -85,11 +85,7 @@ private:
   bool overlay_bounding_box;
   bool overlay_error_message;
 
-  bool rotate_image;
-  bool resize_image;
   bool crop_image;
-  int resize_width;
-  int resize_height;
   int crop_x;
   int crop_y;
   int crop_width;
@@ -252,11 +248,7 @@ public:
     nh.param<bool>("overlay_bounding_box", overlay_bounding_box, true);
     nh.param<bool>("overlay_error_message", overlay_error_message, true);
 
-    nh.param<bool>("rotate_image", rotate_image, false);
-    nh.param<bool>("resize_image", resize_image, false);
     nh.param<bool>("crop_image", crop_image, false);
-    nh.param<int>("resize_width", resize_width, -1);
-    nh.param<int>("resize_height", resize_height, -1);
     nh.param<int>("crop_x", crop_x, -1);
     nh.param<int>("crop_y", crop_y, -1);
     nh.param<int>("crop_width", crop_width, -1);
@@ -463,28 +455,16 @@ public:
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
         inImage = cv_ptr->image;
 
-        // Resize image
-        if (resize_image && resize_width != -1 && resize_height != -1) {
-          cv::Size new_size(resize_width, resize_height);
-          cv::resize(inImage, inImage, new_size);
-        }
-
         // Crop image
         if (crop_image && crop_x != -1 && crop_y != -1 && crop_width != -1 && crop_height != -1) {
           cv::Rect crop_rect(crop_x, crop_y, crop_width, crop_height);
-          inImage = inImage(crop_rect);
-        }
-
-        // Rotate image
-        if (rotate_image) {
-          cv::rotate(inImage, inImage, cv::ROTATE_90_CLOCKWISE);
         }
 
         std::vector<aruco_msgs::Marker> markerMsgs;
         //detection results will go into "markers"
         markers.clear();
         //Ok, let's detect
-        mDetector.detect(inImage, markers, camParam, marker_size, false);
+        mDetector.detect(inImage(crop_rect), markers, camParam, marker_size, false);
         //for each marker, draw info and its boundaries in the image
 
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
