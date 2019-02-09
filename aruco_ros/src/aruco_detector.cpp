@@ -85,11 +85,10 @@ private:
   bool overlay_bounding_box;
   bool overlay_error_message;
 
-  bool crop_image;
-  int crop_x;
-  int crop_y;
-  int crop_width;
-  int crop_height;
+  int detection_zone_x;
+  int detection_zone_y;
+  int detection_zone_width;
+  int detection_zone_height;
 
   cv::Point position;
 
@@ -248,11 +247,10 @@ public:
     nh.param<bool>("overlay_bounding_box", overlay_bounding_box, true);
     nh.param<bool>("overlay_error_message", overlay_error_message, true);
 
-    nh.param<bool>("crop_image", crop_image, false);
-    nh.param<int>("crop_x", crop_x, -1);
-    nh.param<int>("crop_y", crop_y, -1);
-    nh.param<int>("crop_width", crop_width, -1);
-    nh.param<int>("crop_height", crop_height, -1);
+    nh.param<int>("detection_zone_x", detection_zone_x, -1);
+    nh.param<int>("detection_zone_y", detection_zone_y, -1);
+    nh.param<int>("detection_zone_width", detection_zone_width, -1);
+    nh.param<int>("detection_zone_height", detection_zone_height, -1);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
     //ROS_ASSERT(num_markers_in_list <= 11);
@@ -460,7 +458,7 @@ public:
         markers.clear();
 
         // Only detect codes inside the detection zone
-        cv::Rect detection_zone(0, 0, camParam.width, camParam.height);
+        cv::Rect detection_zone(0, 0, camParam.CamSize.width, camParam.CamSize.height);
         if (detection_zone_x != -1 && detection_zone_y != -1 && detection_zone_width != -1 && detection_zone_height != -1) {
           detection_zone.x = detection_zone_x;
           detection_zone.y = detection_zone_y;
@@ -477,7 +475,6 @@ public:
           // Only process markers if there is only one known marker in FOV
           // only publishing the selected markers
           aruco_msgs::Marker markerMsg = process_marker(markers[0], curr_stamp);
-          markerMsg.detection_zone = detection_zone;
           markerMsgs.push_back(markerMsg);
         }else if (markers.size() > 1){
           // If multiple aruco code have been detected, return the error message
@@ -500,7 +497,6 @@ public:
           arucoMsg.header.stamp = curr_stamp;
           arucoMsg.error_code = aruco_msgs::Marker::MORE_THAN_ONE_CODE;
           arucoMsg.error_message = aruco_msgs::Marker::MORE_THAN_ONE_CODE_MESSAGE;
-          arucoMsg.detection_zone = detection_zone;
           pose_pub.publish(arucoMsg);
           markerMsgs.push_back(arucoMsg);
 
@@ -519,6 +515,10 @@ public:
           out_msg.image = inImage;
           markerImageMsg.image = *out_msg.toImageMsg();
           markerImageMsg.markers = markerMsgs;
+          markerImageMsg.detection_zone.x = detection_zone.x;
+          markerImageMsg.detection_zone.y = detection_zone.y;
+          markerImageMsg.detection_zone.width = detection_zone.width;
+          markerImageMsg.detection_zone.height = detection_zone.height;
 
           markerImage_pub.publish(markerImageMsg);
         }
