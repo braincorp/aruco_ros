@@ -458,7 +458,7 @@ public:
         markers.clear();
 
         // Only detect codes inside the detection zone
-        cv::Rect detection_zone(0, 0, camParam.CamSize.width, camParam.CamSize.height);
+        cv::Rect detection_zone(0, 0, inImage.size().width, inImage.size().height);
         if (detection_zone_x != -1 && detection_zone_y != -1 && detection_zone_width != -1 && detection_zone_height != -1) {
           detection_zone.x = detection_zone_x;
           detection_zone.y = detection_zone_y;
