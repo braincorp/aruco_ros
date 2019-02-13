@@ -7,7 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs)
 
-add_message_files( FILES Marker.msg Corner.msg MarkerImage.msg )
+add_message_files( FILES Marker.msg Corner.msg MarkerImage.msg DetectionZone.msg )
 generate_messages( DEPENDENCIES std_msgs geometry_msgs sensor_msgs )
 
 catkin_package(

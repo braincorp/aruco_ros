@@ -85,15 +85,10 @@ private:
   bool overlay_bounding_box;
   bool overlay_error_message;
 
-  bool rotate_image;
-  bool resize_image;
-  bool crop_image;
-  int resize_width;
-  int resize_height;
-  int crop_x;
-  int crop_y;
-  int crop_width;
-  int crop_height;
+  int detection_zone_x;
+  int detection_zone_y;
+  int detection_zone_width;
+  int detection_zone_height;
 
   cv::Point position;
 
@@ -252,15 +247,10 @@ public:
     nh.param<bool>("overlay_bounding_box", overlay_bounding_box, true);
     nh.param<bool>("overlay_error_message", overlay_error_message, true);
 
-    nh.param<bool>("rotate_image", rotate_image, false);
-    nh.param<bool>("resize_image", resize_image, false);
-    nh.param<bool>("crop_image", crop_image, false);
-    nh.param<int>("resize_width", resize_width, -1);
-    nh.param<int>("resize_height", resize_height, -1);
-    nh.param<int>("crop_x", crop_x, -1);
-    nh.param<int>("crop_y", crop_y, -1);
-    nh.param<int>("crop_width", crop_width, -1);
-    nh.param<int>("crop_height", crop_height, -1);
+    nh.param<int>("detection_zone_x", detection_zone_x, -1);
+    nh.param<int>("detection_zone_y", detection_zone_y, -1);
+    nh.param<int>("detection_zone_width", detection_zone_width, -1);
+    nh.param<int>("detection_zone_height", detection_zone_height, -1);
 
     ROS_ASSERT(camera_frame != "" && marker_frame != "");
     //ROS_ASSERT(num_markers_in_list <= 11);
@@ -463,28 +453,22 @@ public:
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
         inImage = cv_ptr->image;
 
-        // Resize image
-        if (resize_image && resize_width != -1 && resize_height != -1) {
-          cv::Size new_size(resize_width, resize_height);
-          cv::resize(inImage, inImage, new_size);
-        }
-
-        // Crop image
-        if (crop_image && crop_x != -1 && crop_y != -1 && crop_width != -1 && crop_height != -1) {
-          cv::Rect crop_rect(crop_x, crop_y, crop_width, crop_height);
-          inImage = inImage(crop_rect);
-        }
-
-        // Rotate image
-        if (rotate_image) {
-          cv::rotate(inImage, inImage, cv::ROTATE_90_CLOCKWISE);
-        }
-
         std::vector<aruco_msgs::Marker> markerMsgs;
         //detection results will go into "markers"
         markers.clear();
-        //Ok, let's detect
-        mDetector.detect(inImage, markers, camParam, marker_size, false);
+
+        // Only detect codes inside the detection zone
+        cv::Rect detection_zone(0, 0, camParam.CamSize.width, camParam.CamSize.height);
+        if (detection_zone_x != -1 && detection_zone_y != -1 && detection_zone_width != -1 && detection_zone_height != -1) {
+          detection_zone.x = detection_zone_x;
+          detection_zone.y = detection_zone_y;
+          detection_zone.width = detection_zone_width;
+          detection_zone.height = detection_zone_height;
+        }
+
+        // Detect codes
+        mDetector.detect(inImage(detection_zone), markers, camParam, marker_size, false);
+
         //for each marker, draw info and its boundaries in the image
 
         if (markers.size() == 1 && is_marker_id_in_list(markers[0].id)){
@@ -531,6 +515,10 @@ public:
           out_msg.image = inImage;
           markerImageMsg.image = *out_msg.toImageMsg();
           markerImageMsg.markers = markerMsgs;
+          markerImageMsg.detection_zone.x = detection_zone.x;
+          markerImageMsg.detection_zone.y = detection_zone.y;
+          markerImageMsg.detection_zone.width = detection_zone.width;
+          markerImageMsg.detection_zone.height = detection_zone.height;
 
           markerImage_pub.publish(markerImageMsg);
         }
